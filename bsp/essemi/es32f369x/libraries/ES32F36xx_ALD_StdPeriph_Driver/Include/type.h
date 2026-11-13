@@ -8,10 +8,26 @@
   * @date    17 Apr 2019
   * @author  AE Team
   * @note
+  *          Change Logs:
+  *          Date            Author          Notes
+  *          17 Apr 2019     AE Team         The first version
   *
   * Copyright (C) Shanghai Eastsoft Microelectronics Co. Ltd. All rights reserved.
   *
-  *********************************************************************************
+  * SPDX-License-Identifier: Apache-2.0
+  *
+  * Licensed under the Apache License, Version 2.0 (the License); you may
+  * not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  **********************************************************************************
   */
 
 #ifndef __TYPE_H__
@@ -22,8 +38,7 @@ extern "C" {
 #endif
 
 #include <stdint.h>
-
-
+#include "es_conf_info_select.h"
 #if defined (__CC_ARM)
 #define __INLINE__		__inline
 #define __STATIC_INLINE__	static __inline
@@ -35,35 +50,35 @@ extern "C" {
 #define __isr__
 
 typedef enum {
-	RESET = 0x0,
-	SET   = 0x1,
+	RESET = 0x0U,
+	SET   = 0x1U,
 } flag_status_t, it_status_t;
 
 typedef enum {
-	BIT_RESET = 0x0,
-	BIT_SET   = 0x1,
+	BIT_RESET = 0x0U,
+	BIT_SET   = 0x1U,
 } bit_status_t;
 
 typedef enum {
-	DISABLE = 0x0,
-	ENABLE  = 0x1,
+	DISABLE = 0x0U,
+	ENABLE  = 0x1U,
 } type_func_t;
 #define IS_FUNC_STATE(x)	(((x) == DISABLE) || ((x) == ENABLE))
 
 typedef enum {
-	FALSE = 0x0,
-	TRUE  = 0x1,
+	FALSE = 0x0U,
+	TRUE  = 0x1U,
 } type_bool_t;
 
 typedef enum {
-	UNLOCK = 0x0,
-	LOCK   = 0x1,
+	UNLOCK = 0x0U,
+	LOCK   = 0x1U,
 } lock_state_t;
 #define IS_LOCK_STATE(x)	(((x) == UNLOCK) || ((x) == LOCK))
 
 
 #define BIT(x)			((1U << (x)))
-#define BITS(s, e)		((0xffffffff << (s)) & (0xffffffff >> (31 - (e))))
+#define BITS(s, e)		((0xffffffffU << (s)) & (0xffffffffU >> (31 - (e))))
 #define SET_BIT(reg, bit)	((reg) |= (bit))
 #define CLEAR_BIT(reg, bit)	((reg) &= ~(bit))
 #define READ_BIT(reg, bit)	((reg) & (bit))

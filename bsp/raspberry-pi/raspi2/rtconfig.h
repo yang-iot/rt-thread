@@ -1,35 +1,86 @@
 #ifndef RT_CONFIG_H__
 #define RT_CONFIG_H__
 
-/* Automatically generated file; DO NOT EDIT. */
-/* RT-Thread Project Configuration */
-
 /* RT-Thread Kernel */
 
-#define RT_NAME_MAX 8
-#define RT_ALIGN_SIZE 4
-/* RT_THREAD_PRIORITY_8 is not set */
+/* klibc options */
+
+/* rt_vsnprintf options */
+
+/* end of rt_vsnprintf options */
+
+/* rt_vsscanf options */
+
+/* end of rt_vsscanf options */
+
+/* rt_memset options */
+
+/* end of rt_memset options */
+
+/* rt_memcpy options */
+
+/* end of rt_memcpy options */
+
+/* rt_memmove options */
+
+/* end of rt_memmove options */
+
+/* rt_memcmp options */
+
+/* end of rt_memcmp options */
+
+/* rt_strstr options */
+
+/* end of rt_strstr options */
+
+/* rt_strcasecmp options */
+
+/* end of rt_strcasecmp options */
+
+/* rt_strncpy options */
+
+/* end of rt_strncpy options */
+
+/* rt_strcpy options */
+
+/* end of rt_strcpy options */
+
+/* rt_strncmp options */
+
+/* end of rt_strncmp options */
+
+/* rt_strcmp options */
+
+/* end of rt_strcmp options */
+
+/* rt_strlen options */
+
+/* end of rt_strlen options */
+
+/* rt_strnlen options */
+
+/* end of rt_strnlen options */
+/* end of klibc options */
+#define RT_NAME_MAX 12
+#define RT_CPUS_NR 1
+#define RT_ALIGN_SIZE 8
 #define RT_THREAD_PRIORITY_32
-/* RT_THREAD_PRIORITY_256 is not set */
 #define RT_THREAD_PRIORITY_MAX 32
 #define RT_TICK_PER_SECOND 100
 #define RT_USING_OVERFLOW_CHECK
 #define RT_USING_HOOK
+#define RT_HOOK_USING_FUNC_PTR
+#define RT_USING_IDLE_HOOK
 #define RT_IDLE_HOOK_LIST_SIZE 4
 #define IDLE_THREAD_STACK_SIZE 256
-/* RT_USING_TIMER_SOFT is not set */
-#define RT_DEBUG
-#define RT_DEBUG_COLOR
-/* RT_DEBUG_INIT_CONFIG is not set */
-/* RT_DEBUG_THREAD_CONFIG is not set */
-/* RT_DEBUG_SCHEDULER_CONFIG is not set */
-/* RT_DEBUG_IPC_CONFIG is not set */
-/* RT_DEBUG_TIMER_CONFIG is not set */
-/* RT_DEBUG_IRQ_CONFIG is not set */
-/* RT_DEBUG_MEM_CONFIG is not set */
-/* RT_DEBUG_SLAB_CONFIG is not set */
-/* RT_DEBUG_MEMHEAP_CONFIG is not set */
-/* RT_DEBUG_MODULE_CONFIG is not set */
+
+/* kservice options */
+
+/* end of kservice options */
+#define RT_USING_DEBUG
+#define RT_DEBUGING_ASSERT
+#define RT_DEBUGING_COLOR
+#define RT_DEBUGING_CONTEXT
 
 /* Inter-Thread communication */
 
@@ -38,29 +89,33 @@
 #define RT_USING_EVENT
 #define RT_USING_MAILBOX
 #define RT_USING_MESSAGEQUEUE
-/* RT_USING_SIGNALS is not set */
+/* end of Inter-Thread communication */
 
 /* Memory Management */
 
 #define RT_USING_MEMPOOL
-/* RT_USING_MEMHEAP is not set */
-/* RT_USING_NOHEAP is not set */
 #define RT_USING_SMALL_MEM
-/* RT_USING_SLAB is not set */
-/* RT_USING_MEMTRACE is not set */
+#define RT_USING_SMALL_MEM_AS_HEAP
 #define RT_USING_HEAP
-
-/* Kernel Device Object */
-
+/* end of Memory Management */
 #define RT_USING_DEVICE
-/* RT_USING_DEVICE_OPS is not set */
-/* RT_USING_INTERRUPT_INFO is not set */
 #define RT_USING_CONSOLE
 #define RT_CONSOLEBUF_SIZE 128
 #define RT_CONSOLE_DEVICE_NAME "uart1"
-/* RT_USING_MODULE is not set */
+#define RT_USING_CONSOLE_OUTPUT_CTL
+#define RT_VER_NUM 0x50300
+#define RT_BACKTRACE_LEVEL_MAX_NR 32
+/* end of RT-Thread Kernel */
+#define RT_USING_CACHE
+#define RT_USING_HW_ATOMIC
+#define ARCH_USING_HW_ATOMIC_8
+#define ARCH_USING_HW_ATOMIC_16
+#define RT_USING_CPU_FFS
+#define ARCH_MM_MMU
 #define ARCH_ARM
+#define ARCH_ARM_MMU
 #define ARCH_ARM_CORTEX_A
+#define RT_NO_USING_GIC
 #define ARCH_ARM_CORTEX_A7
 
 /* RT-Thread Components */
@@ -69,190 +124,304 @@
 #define RT_USING_USER_MAIN
 #define RT_MAIN_THREAD_STACK_SIZE 2048
 #define RT_MAIN_THREAD_PRIORITY 10
-
-/* C++ features */
-
-/* RT_USING_CPLUSPLUS is not set */
-
-/* Command shell */
-
+#define RT_USING_MSH
 #define RT_USING_FINSH
+#define FINSH_USING_MSH
 #define FINSH_THREAD_NAME "tshell"
+#define FINSH_THREAD_PRIORITY 20
+#define FINSH_THREAD_STACK_SIZE 4096
 #define FINSH_USING_HISTORY
 #define FINSH_HISTORY_LINES 5
 #define FINSH_USING_SYMTAB
-#define FINSH_USING_DESCRIPTION
-/* FINSH_ECHO_DISABLE_DEFAULT is not set */
-#define FINSH_THREAD_PRIORITY 20
-#define FINSH_THREAD_STACK_SIZE 4096
 #define FINSH_CMD_SIZE 80
-/* FINSH_USING_AUTH is not set */
-#define FINSH_USING_MSH
-#define FINSH_USING_MSH_DEFAULT
-#define FINSH_USING_MSH_ONLY
+#define MSH_USING_BUILT_IN_COMMANDS
+#define FINSH_USING_DESCRIPTION
 #define FINSH_ARG_MAX 10
+#define FINSH_USING_OPTION_COMPLETION
 
-/* Device virtual file system */
+/* DFS: device virtual file system */
 
-/* RT_USING_DFS is not set */
+/* end of DFS: device virtual file system */
 
 /* Device Drivers */
 
 #define RT_USING_DEVICE_IPC
-#define RT_PIPE_BUFSZ 512
+#define RT_UNAMED_PIPE_NUMBER 64
 #define RT_USING_SERIAL
+#define RT_USING_SERIAL_V1
 #define RT_SERIAL_USING_DMA
-/* RT_USING_CAN is not set */
-/* RT_USING_HWTIMER is not set */
-/* RT_USING_CPUTIME is not set */
-/* RT_USING_I2C is not set */
-/* RT_USING_PIN is not set */
-/* RT_USING_PWM is not set */
-/* RT_USING_MTD_NOR is not set */
-/* RT_USING_MTD_NAND is not set */
-/* RT_USING_RTC is not set */
-/* RT_USING_SDIO is not set */
-/* RT_USING_SPI is not set */
-/* RT_USING_WDT is not set */
-/* RT_USING_WIFI is not set */
-/* RT_USING_AUDIO is not set */
+#define RT_SERIAL_RB_BUFSZ 64
+/* end of Device Drivers */
 
-/* Using USB */
+/* C/C++ and POSIX layer */
 
-/* RT_USING_USB_HOST is not set */
-/* RT_USING_USB_DEVICE is not set */
+/* ISO-ANSI C layer */
 
-/* POSIX layer and C standard library */
+/* Timezone and Daylight Saving Time */
 
-/* RT_USING_LIBC is not set */
-/* RT_USING_PTHREADS is not set */
+#define RT_LIBC_USING_LIGHT_TZ_DST
+#define RT_LIBC_TZ_DEFAULT_HOUR 8
+#define RT_LIBC_TZ_DEFAULT_MIN 0
+#define RT_LIBC_TZ_DEFAULT_SEC 0
+/* end of Timezone and Daylight Saving Time */
+/* end of ISO-ANSI C layer */
+
+/* POSIX (Portable Operating System Interface) layer */
+
+
+/* Interprocess Communication (IPC) */
+
+
+/* Socket is in the 'Network' category */
+
+/* end of Interprocess Communication (IPC) */
+/* end of POSIX (Portable Operating System Interface) layer */
+/* end of C/C++ and POSIX layer */
 
 /* Network */
 
-/* Socket abstraction layer */
+/* end of Network */
 
-/* RT_USING_SAL is not set */
+/* Memory protection */
 
-/* light weight TCP/IP stack */
-
-/* RT_USING_LWIP is not set */
-
-/* Modbus master and slave stack */
-
-/* RT_USING_MODBUS is not set */
-
-/* AT commands */
-
-/* RT_USING_AT is not set */
-
-/* VBUS(Virtual Software BUS) */
-
-/* RT_USING_VBUS is not set */
+/* end of Memory protection */
 
 /* Utilities */
 
-/* RT_USING_LOGTRACE is not set */
-/* RT_USING_RYM is not set */
+#define RT_USING_ADT
+#define RT_USING_ADT_AVL
+#define RT_USING_ADT_BITMAP
+#define RT_USING_ADT_HASHMAP
+#define RT_USING_ADT_REF
+/* end of Utilities */
+
+/* Memory management */
+
+#define RT_PAGE_AFFINITY_BLOCK_SIZE 0x1000
+#define RT_PAGE_MAX_ORDER 11
+
+/* Debugging */
+
+/* end of Debugging */
+/* end of Memory management */
+
+/* Using USB legacy version */
+
+/* end of Using USB legacy version */
+/* end of RT-Thread Components */
+
+/* RT-Thread Utestcases */
+
+/* end of RT-Thread Utestcases */
 
 /* RT-Thread online packages */
 
 /* IoT - internet of things */
 
-/* PKG_USING_PAHOMQTT is not set */
-/* PKG_USING_WEBCLIENT is not set */
-/* PKG_USING_MONGOOSE is not set */
-/* PKG_USING_WEBTERMINAL is not set */
-/* PKG_USING_CJSON is not set */
-/* PKG_USING_JSMN is not set */
-/* PKG_USING_LJSON is not set */
-/* PKG_USING_EZXML is not set */
-/* PKG_USING_NANOPB is not set */
 
 /* Wi-Fi */
 
 /* Marvell WiFi */
 
-/* PKG_USING_WLANMARVELL is not set */
+/* end of Marvell WiFi */
 
 /* Wiced WiFi */
 
-/* PKG_USING_WLAN_WICED is not set */
-/* PKG_USING_COAP is not set */
-/* PKG_USING_NOPOLL is not set */
-/* PKG_USING_NETUTILS is not set */
-/* PKG_USING_AT_DEVICE is not set */
+/* end of Wiced WiFi */
+
+/* CYW43012 WiFi */
+
+/* end of CYW43012 WiFi */
+
+/* BL808 WiFi */
+
+/* end of BL808 WiFi */
+
+/* CYW43439 WiFi */
+
+/* end of CYW43439 WiFi */
+/* end of Wi-Fi */
 
 /* IoT Cloud */
 
-/* PKG_USING_ONENET is not set */
-/* PKG_USING_GAGENT_CLOUD is not set */
-/* PKG_USING_ALI_IOTKIT is not set */
-/* PKG_USING_AZURE is not set */
+/* end of IoT Cloud */
+/* end of IoT - internet of things */
 
 /* security packages */
 
-/* PKG_USING_MBEDTLS is not set */
-/* PKG_USING_libsodium is not set */
-/* PKG_USING_TINYCRYPT is not set */
+/* end of security packages */
 
 /* language packages */
 
-/* PKG_USING_LUA is not set */
-/* PKG_USING_JERRYSCRIPT is not set */
-/* PKG_USING_MICROPYTHON is not set */
+/* JSON: JavaScript Object Notation, a lightweight data-interchange format */
+
+/* end of JSON: JavaScript Object Notation, a lightweight data-interchange format */
+
+/* XML: Extensible Markup Language */
+
+/* end of XML: Extensible Markup Language */
+/* end of language packages */
 
 /* multimedia packages */
 
-/* PKG_USING_OPENMV is not set */
-/* PKG_USING_MUPDF is not set */
+/* LVGL: powerful and easy-to-use embedded GUI library */
+
+/* end of LVGL: powerful and easy-to-use embedded GUI library */
+
+/* u8g2: a monochrome graphic library */
+
+/* end of u8g2: a monochrome graphic library */
+/* end of multimedia packages */
 
 /* tools packages */
 
-/* PKG_USING_CMBACKTRACE is not set */
-/* PKG_USING_EASYFLASH is not set */
-/* PKG_USING_EASYLOGGER is not set */
-/* PKG_USING_SYSTEMVIEW is not set */
+/* end of tools packages */
 
 /* system packages */
 
-/* PKG_USING_GUIENGINE is not set */
-/* PKG_USING_PERSIMMON is not set */
-/* PKG_USING_CAIRO is not set */
-/* PKG_USING_PIXMAN is not set */
-/* PKG_USING_LWEXT4 is not set */
-/* PKG_USING_PARTITION is not set */
-/* PKG_USING_FAL is not set */
-/* PKG_USING_SQLITE is not set */
-/* PKG_USING_RTI is not set */
-/* PKG_USING_LITTLEVGL2RTT is not set */
+/* enhanced kernel services */
+
+/* end of enhanced kernel services */
+
+/* acceleration: Assembly language or algorithmic acceleration packages */
+
+/* end of acceleration: Assembly language or algorithmic acceleration packages */
+
+/* CMSIS: ARM Cortex-M Microcontroller Software Interface Standard */
+
+/* end of CMSIS: ARM Cortex-M Microcontroller Software Interface Standard */
+
+/* Micrium: Micrium software products porting for RT-Thread */
+
+/* end of Micrium: Micrium software products porting for RT-Thread */
+/* end of system packages */
 
 /* peripheral libraries and drivers */
 
-/* PKG_USING_STM32F4_HAL is not set */
-/* PKG_USING_STM32F4_DRIVERS is not set */
-/* PKG_USING_REALTEK_AMEBA is not set */
-/* PKG_USING_SHT2X is not set */
-/* PKG_USING_AHT10 is not set */
+/* HAL & SDK Drivers */
+
+/* STM32 HAL & SDK Drivers */
+
+/* end of STM32 HAL & SDK Drivers */
+
+/* Infineon HAL Packages */
+
+/* end of Infineon HAL Packages */
+
+/* Kendryte SDK */
+
+/* end of Kendryte SDK */
+
+/* WCH HAL & SDK Drivers */
+
+/* end of WCH HAL & SDK Drivers */
+
+/* AT32 HAL & SDK Drivers */
+
+/* end of AT32 HAL & SDK Drivers */
+
+/* HC32 DDL Drivers */
+
+/* end of HC32 DDL Drivers */
+
+/* NXP HAL & SDK Drivers */
+
+/* end of NXP HAL & SDK Drivers */
+
+/* NUVOTON Drivers */
+
+/* end of NUVOTON Drivers */
+
+/* GD32 Drivers */
+
+/* end of GD32 Drivers */
+
+/* HPMicro SDK */
+
+/* end of HPMicro SDK */
+
+/* FT32 HAL & SDK Drivers */
+
+/* end of FT32 HAL & SDK Drivers */
+/* end of HAL & SDK Drivers */
+
+/* sensors drivers */
+
+/* end of sensors drivers */
+
+/* touch drivers */
+
+/* end of touch drivers */
+/* end of peripheral libraries and drivers */
+
+/* AI packages */
+
+/* end of AI packages */
+
+/* Signal Processing and Control Algorithm Packages */
+
+/* end of Signal Processing and Control Algorithm Packages */
 
 /* miscellaneous packages */
 
-/* PKG_USING_LIBCSV is not set */
-/* PKG_USING_OPTPARSE is not set */
-/* PKG_USING_FASTLZ is not set */
-/* PKG_USING_MINILZO is not set */
-/* PKG_USING_QUICKLZ is not set */
-/* PKG_USING_MULTIBUTTON is not set */
-/* PKG_USING_CANFESTIVAL is not set */
-/* PKG_USING_ZLIB is not set */
-/* PKG_USING_DSTR is not set */
+/* project laboratory */
 
-/* sample package */
+/* end of project laboratory */
 
-/* PKG_USING_SAMPLES is not set */
+/* samples: kernel and components samples */
 
-/* example package: hello */
+/* end of samples: kernel and components samples */
 
-/* PKG_USING_HELLO is not set */
+/* entertainment: terminal games and other interesting software packages */
+
+/* end of entertainment: terminal games and other interesting software packages */
+/* end of miscellaneous packages */
+
+/* Arduino libraries */
+
+
+/* Projects and Demos */
+
+/* end of Projects and Demos */
+
+/* Sensors */
+
+/* end of Sensors */
+
+/* Display */
+
+/* end of Display */
+
+/* Timing */
+
+/* end of Timing */
+
+/* Data Processing */
+
+/* end of Data Processing */
+
+/* Data Storage */
+
+/* Communication */
+
+/* end of Communication */
+
+/* Device Control */
+
+/* end of Device Control */
+
+/* Other */
+
+/* end of Other */
+
+/* Signal IO */
+
+/* end of Signal IO */
+
+/* Uncategorized */
+
+/* end of Arduino libraries */
+/* end of RT-Thread online packages */
 #define BCM2836_SOC
 #define RT_USING_UART1
 

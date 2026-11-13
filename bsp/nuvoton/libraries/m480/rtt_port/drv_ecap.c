@@ -12,8 +12,9 @@
 #include <rtconfig.h>
 
 #if defined(BSP_USING_ECAP)
+#if ((BSP_USING_ECAP0_CHMSK+BSP_USING_ECAP1_CHMSK)!=0)
 #include <rtdevice.h>
-#include <NuMicro.h>
+#include "NuMicro.h"
 
 #define ECAP_CH0_POS    (0)
 #define ECAP_CH1_POS    (1)
@@ -252,7 +253,7 @@ static rt_err_t nu_capture_get_pulsewidth(struct rt_inputcapture_device *inputca
     if (nu_capture->bfirstData)
     {
         nu_capture->bfirstData = RT_FALSE;
-        ret = RT_ERROR;
+        ret = -RT_ERROR;
 
         return -(ret);
     }
@@ -262,7 +263,7 @@ static rt_err_t nu_capture_get_pulsewidth(struct rt_inputcapture_device *inputca
     else    /* Overrun case */
         fTempCnt = nu_capture->u32CurrentCnt + ((0x1000000 - nu_capture->u32LastCnt) + 1);
 
-    *pulsewidth_us =(int)(fTempCnt * nu_capture->ecap_dev->fUsPerTick);
+    *pulsewidth_us = (int)(fTempCnt * nu_capture->ecap_dev->fUsPerTick);
 
     nu_capture->u32LastCnt = nu_capture->u32CurrentCnt;
 
@@ -280,7 +281,7 @@ static float get_ecap_tick_time_us(nu_capture_t *nu_capture)
 
 static rt_err_t nu_ecap_init(nu_capture_t *nu_capture)
 {
-    rt_err_t ret = RT_ERROR;
+    rt_err_t ret = -RT_ERROR;
     static rt_bool_t bECAP0Inited = RT_FALSE;
     static rt_bool_t bECAP1Inited = RT_FALSE;
 
@@ -358,7 +359,7 @@ static rt_err_t nu_capture_init(struct rt_inputcapture_device *inputcapture)
     if (nu_ecap_init(nu_capture) != RT_EOK)
     {
         rt_kprintf("Failed to initialize ECAP.\n");
-        ret = RT_ERROR;
+        ret = -RT_ERROR;
     }
 
     return -(ret);
@@ -430,7 +431,7 @@ static int nu_ecap_capture_device_init(void)
 #if (BSP_USING_ECAP0_CHMSK!=0)
         if (BSP_USING_ECAP0_CHMSK & (0x1 << i))
         {
-            nu_ecap0_capture[i] = (nu_capture_t*)rt_malloc(sizeof(nu_capture_t));
+            nu_ecap0_capture[i] = (nu_capture_t *)rt_malloc(sizeof(nu_capture_t));
             ecap_init(nu_ecap0_capture[i], i, &nu_ecap0_dev, nu_ecap0_device_name[i]);
         }
 #endif //#if (BSP_USING_ECAP0_CHMSK!=0)
@@ -438,7 +439,7 @@ static int nu_ecap_capture_device_init(void)
 #if (BSP_USING_ECAP1_CHMSK!=0)
         if (BSP_USING_ECAP1_CHMSK & (0x1 << i))
         {
-            nu_ecap1_capture[i] = (nu_capture_t*)rt_malloc(sizeof(nu_capture_t));
+            nu_ecap1_capture[i] = (nu_capture_t *)rt_malloc(sizeof(nu_capture_t));
             ecap_init(nu_ecap1_capture[i], i, &nu_ecap1_dev, nu_ecap1_device_name[i]);
         }
 #endif //#if (BSP_USING_ECAP1_CHMSK!=0)
@@ -447,5 +448,5 @@ static int nu_ecap_capture_device_init(void)
     return 0;
 }
 INIT_DEVICE_EXPORT(nu_ecap_capture_device_init);
-
+#endif //#if ((BSP_USING_ECAP0_CHMSK+BSP_USING_ECAP1_CHMSK)!=0)
 #endif //#if defined(BSP_USING_ECAP)

@@ -11,6 +11,20 @@
   *
   * Copyright (C) Shanghai Eastsoft Microelectronics Co. Ltd. All rights reserved.
   *
+  * SPDX-License-Identifier: Apache-2.0
+  *
+  * Licensed under the Apache License, Version 2.0 (the License); you may
+  * not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  *
   ********************************************************************************
   */
 
@@ -36,10 +50,10 @@ extern "C" {
   * @defgroup IAP_Private_Macros IAP Private Macros
   * @{
   */
-#define IAP_WSP_ADDR	0x10000000
-#define IAP_PE_ADDR	0x10000004
-#define IAP_WP_ADDR	0x10000008
-#define IAP_DWP_ADDR	0x1000000c
+#define IAP_WSP_ADDR	0x10000000U
+#define IAP_PE_ADDR	0x10000004U
+#define IAP_WP_ADDR	0x10000008U
+#define IAP_DWP_ADDR	0x1000000cU
 /**
   * @}
   */

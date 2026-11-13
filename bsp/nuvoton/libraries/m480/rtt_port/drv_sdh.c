@@ -12,17 +12,23 @@
 
 #include <rtconfig.h>
 
+#define NU_SDH_HOTPLUG
+#define NU_SDH_MOUNT_ON_ROOT
+#undef BSP_USING_SDH
+
 #if defined(BSP_USING_SDH)
 
 #include <rtdevice.h>
-#include <NuMicro.h>
+#include "NuMicro.h"
 #include <drv_pdma.h>
 #include <string.h>
 
-#if defined(RT_USING_DFS)
-    #include <dfs_fs.h>
-    #include <dfs_posix.h>
-#endif
+#include <dfs_fs.h>
+#include <dfs_file.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <sys/stat.h>
+#include <sys/statfs.h>
 
 /* Private define ---------------------------------------------------------------*/
 
@@ -111,7 +117,7 @@ static void nu_sdh_isr(nu_sdh_t sdh);
 static rt_err_t nu_sdh_init(rt_device_t dev);
 static rt_err_t nu_sdh_open(rt_device_t dev, rt_uint16_t oflag);
 static rt_err_t nu_sdh_close(rt_device_t dev);
-static rt_size_t nu_sdh_read(rt_device_t dev, rt_off_t pos, void *buffer, rt_size_t blk_nb);
+static rt_ssize_t nu_sdh_read(rt_device_t dev, rt_off_t pos, void *buffer, rt_size_t blk_nb);
 static rt_err_t nu_sdh_control(rt_device_t dev, int cmd, void *args);
 static int rt_hw_sdh_init(void);
 
@@ -266,15 +272,17 @@ static rt_err_t nu_sdh_close(rt_device_t dev)
     return RT_EOK;
 }
 
-static rt_size_t nu_sdh_read(rt_device_t dev, rt_off_t pos, void *buffer, rt_size_t blk_nb)
+static rt_ssize_t nu_sdh_read(rt_device_t dev, rt_off_t pos, void *buffer, rt_size_t blk_nb)
 {
     rt_uint32_t ret = 0;
     nu_sdh_t sdh = (nu_sdh_t)dev;
+    rt_err_t result;
 
     RT_ASSERT(dev != RT_NULL);
     RT_ASSERT(buffer != RT_NULL);
 
-    rt_sem_take(&sdh->lock, RT_WAITING_FOREVER);
+    result = rt_sem_take(&sdh->lock, RT_WAITING_FOREVER);
+    RT_ASSERT(result == RT_EOK);
 
     /* Check alignment. */
     if (((uint32_t)buffer & 0x03) != 0)
@@ -315,7 +323,8 @@ exit_nu_sdh_read:
         sdh->pbuf = RT_NULL;
     }
 
-    rt_sem_release(&sdh->lock);
+    result = rt_sem_release(&sdh->lock);
+    RT_ASSERT(result == RT_EOK);
 
     if (ret == Successful)
         return blk_nb;
@@ -325,15 +334,17 @@ exit_nu_sdh_read:
     return 0;
 }
 
-static rt_size_t nu_sdh_write(rt_device_t dev, rt_off_t pos, const void *buffer, rt_size_t blk_nb)
+static rt_ssize_t nu_sdh_write(rt_device_t dev, rt_off_t pos, const void *buffer, rt_size_t blk_nb)
 {
     rt_uint32_t ret = 0;
     nu_sdh_t sdh = (nu_sdh_t)dev;
+    rt_err_t result;
 
     RT_ASSERT(dev != RT_NULL);
     RT_ASSERT(buffer != RT_NULL);
 
-    rt_sem_take(&sdh->lock, RT_WAITING_FOREVER);
+    result = rt_sem_take(&sdh->lock, RT_WAITING_FOREVER);
+    RT_ASSERT(result == RT_EOK);
 
     /* Check alignment. */
     if (((uint32_t)buffer & 0x03) != 0)
@@ -372,7 +383,8 @@ exit_nu_sdh_write:
         sdh->pbuf = RT_NULL;
     }
 
-    rt_sem_release(&sdh->lock);
+    result = rt_sem_release(&sdh->lock);
+    RT_ASSERT(result == RT_EOK);
 
     if (ret == Successful) return blk_nb;
 
@@ -427,11 +439,13 @@ static int rt_hw_sdh_init(void)
         /* Private */
         nu_sdh_arr[i].dev.user_data = (void *)&nu_sdh_arr[i];
 
-        rt_sem_init(&nu_sdh_arr[i].lock, "sdhlock", 1, RT_IPC_FLAG_FIFO);
+        ret = rt_sem_init(&nu_sdh_arr[i].lock, "sdhlock", 1, RT_IPC_FLAG_FIFO);
+        RT_ASSERT(ret == RT_EOK);
 
         SDH_Open(nu_sdh_arr[i].base, CardDetect_From_GPIO);
 
         nu_sdh_arr[i].pbuf = RT_NULL;
+
         ret = rt_device_register(&nu_sdh_arr[i].dev, nu_sdh_arr[i].name, flags);
         RT_ASSERT(ret == RT_EOK);
     }
@@ -444,8 +458,6 @@ INIT_BOARD_EXPORT(rt_hw_sdh_init);
 static rt_bool_t nu_sdh_hotplug_is_mounted(const char *mounting_path)
 {
     rt_bool_t ret = RT_FALSE;
-
-#if defined(RT_USING_DFS)
 
     struct dfs_filesystem *psFS = dfs_filesystem_lookup(mounting_path);
     if (psFS == RT_NULL)
@@ -461,18 +473,14 @@ static rt_bool_t nu_sdh_hotplug_is_mounted(const char *mounting_path)
         ret = RT_FALSE;
     }
 
-#endif
-
 exit_nu_sdh_hotplug_is_mounted:
 
     return ret;
 }
 static rt_err_t nu_sdh_hotplug_mount(nu_sdh_t sdh)
 {
-    rt_err_t ret = RT_ERROR;
+    rt_err_t ret = -RT_ERROR;
     DIR *t;
-
-#if defined(RT_USING_DFS)
 
     if (nu_sdh_hotplug_is_mounted(sdh->mounted_point) == RT_TRUE)
     {
@@ -516,20 +524,18 @@ static rt_err_t nu_sdh_hotplug_mount(nu_sdh_t sdh)
     else
     {
         rt_kprintf("Failed to mount %s on %s\n", sdh->name, sdh->mounted_point);
-        ret = RT_ERROR;
+        ret = -RT_ERROR;
     }
 
 exit_nu_sdh_hotplug_mount:
 
-#endif
     return -(ret);
 }
 
 static rt_err_t nu_sdh_hotplug_unmount(nu_sdh_t sdh)
 {
-    rt_err_t ret = RT_ERROR;
+    rt_err_t ret = -RT_ERROR;
 
-#if defined(RT_USING_DFS)
     if (nu_sdh_hotplug_is_mounted(sdh->mounted_point) == RT_FALSE)
     {
         ret = RT_EOK;
@@ -546,7 +552,6 @@ static rt_err_t nu_sdh_hotplug_unmount(nu_sdh_t sdh)
         rt_kprintf("Succeed to unmount %s.\n", sdh->mounted_point);
         ret = RT_EOK;
     }
-#endif
 
 exit_nu_sdh_hotplug_unmount:
 
@@ -620,7 +625,11 @@ static void sdh_hotplugger(void *param)
 
 int mnt_init_sdcard_hotplug(void)
 {
-    rt_thread_init(&sdh_tid, "hotplug", sdh_hotplugger, NULL, sdh_stack, sizeof(sdh_stack), RT_THREAD_PRIORITY_MAX - 2, 10);
+    rt_err_t result;
+
+    result = rt_thread_init(&sdh_tid, "hotplug", sdh_hotplugger, NULL, sdh_stack, sizeof(sdh_stack), RT_THREAD_PRIORITY_MAX - 2, 10);
+    RT_ASSERT(result == RT_EOK);
+
     rt_thread_startup(&sdh_tid);
 
     return 0;

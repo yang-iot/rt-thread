@@ -11,7 +11,7 @@
 
 ## 2. 编译说明
 
-推荐使用[env工具](https://www.rt-thread.org/page/download.html)，可以在console下进入到`bsp\raspberry-pi\raspi4-32`目录中，运行以下命令：
+推荐使用[env工具](https://www.rt-thread.org/download.html#download-rt-thread-env-tool)，可以在console下进入到`bsp\raspberry-pi\raspi4-32`目录中，运行以下命令：
 
 ```
 scons
@@ -129,6 +129,12 @@ msh />
 | HDMI | 支持 | - |
 | SDIO | 支持 | - |
 | ETH | 支持 | - |
+| BSC | 支持 | - |
+| DMA | 支持 | - |
+| DSI LCD/TOUCH | 支持     | DSI接口的LCD和TOUCH |
+| ILI9486 SPI LCD | 支持 | - |
+| XPT2046 TOUCH | 支持     | - |
+| BULETOOTH | 正在完善 | 支持reset，loadfirmware |
 
 ## 5. 注意事项
 
@@ -138,7 +144,7 @@ msh />
 
 维护人：[bernard][5]
 
-[1]: https://www.rt-thread.org/page/download.html
+[1]: https://www.rt-thread.org/download.html#download-rt-thread-env-tool
 [2]: https://developer.arm.com/tools-and-software/open-source-software/developer-tools/gnu-toolchain/gnu-a/downloads
 [3]: https://downloads.raspberrypi.org/raspbian_lite_latest
 [4]: https://etcher.io

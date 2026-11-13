@@ -1,0 +1,284 @@
+@page page_rtt_code_style_en RT-Thread Coding Style
+
+This is an developing instruction for RT-Thread developers. As open source
+software, RT-Thread is created by the cooperation of different people. This
+document is a guide for RT-Thread developers. Please obey it as you develop.
+RT-Thread users should also get to know some conventions in the code through it
+and thus easier to understand the implementations of RT-Thread.
+
+
+# 1. Directory Naming
+
+In normal conditions, please name directories in lowercase. Directories should
+have descriptive names. For example, the port of a chip should be composed of
+the name of the chip and the category of the chip. Directories under components/
+should name what the component does.
+
+
+# 2. File Naming
+
+In normal conditions, please name files in lowercase. If the file is
+referencing other places, it can have the original name. To avoid naming
+collision, do not use general names or the names that are frequently used.
+
+
+# 3. Header Files
+
+To avoid include the same header file for multiple times, you need to define a
+symbol like this:
+
+    #ifndef __FILE_H__
+    #define __FILE_H__
+    /* header file content */
+    #endif
+
+The symbol should begin and end with "__" to avoid naming collision. The words
+of the file name should be connected by "_". (This convention is called "snake case".)
+
+
+# 4. Header File Comments
+
+In every header file, there should be copyright information and Change Log
+record like this:
+
+    /*
+    * Copyright (c) 2006-2020, RT-Thread Development Team
+    *
+    * SPDX-License-Identifier: Apache-2.0
+    *
+    * Change Logs:
+    * Date           Author       Notes
+    * 2006-03-18     Bernard      the first version
+    * 2006-04-26     Bernard      add semaphore APIs
+    */
+
+# 5. Structure Defines
+
+Please name structures in lowercase and connect words with "_". For example:
+
+    struct rt_list_node
+    {
+        struct rt_list_node *next;
+        struct rt_list_node *prev;
+    };
+
+Braces should have their own lines and the members should be indented.
+
+The names of type defines such as structure types should be the structure name
+plus "_t". For example:
+
+    typedef struct rt_list_node rt_list_t;
+
+
+In order to be easily referenced, the types of objects in the kernel are pointers. For
+example:
+
+    typedef struct rt_timer* rt_timer_t;
+
+
+# 6. Macros
+
+In RT-Thread, please use uppercase names for macro definitions. Words are
+connected by "_". Like:
+
+    #define RT_TRUE                         1
+
+
+# 7. Function Naming and Declaration
+
+Please name functions in lowercase. Separate words with "_". The API provided to
+upper application should be declared in header files. If the function don't have
+parameters, it should be declared as void:
+
+    rt_thread_t rt_thread_self(void);
+
+
+# 8. Commenting
+
+Please use English to comment. There shouldn't be many comments as the
+comments should describe what the code does. It should describe complicated
+algorithms, for example. Comments for statements should be placed before the
+statements or to the right of them. Any other locations are invalid.
+
+**Macro comments**
+
+Like statement comments, a macro can be documented either to the right of the
+definition or above it. What decides it is how much explanation the macro needs,
+and only then the line length.
+
+Use a trailing `/**<` for simple constant macros, so that a group of values can
+be read in one pass:
+
+    #define RT_EOK                          0               /**< There is no error */
+    #define RT_ERROR                        255             /**< A generic/unknown error happens */
+
+Such lines are column aligned and often exceed 80 columns once the comment is
+added (the `RT_ERROR` line above is 95 columns). That is accepted: for a group of
+constant macros, keeping the columns aligned matters more than the line length.
+
+When the macro needs more than one line of explanation - for example a
+function-like macro whose arguments, expansion or restrictions have to be
+described - move the comment above the definition, use a `/**` block and mark the
+macro with `@def`:
+
+    /**
+     * @ingroup group_basic_definition
+     *
+     * @def RT_ALIGN(size, align)
+     * Return the most contiguous size aligned at specified width. RT_ALIGN(13, 4)
+     * would return 16.
+     * @note align Must be an integer power of 2 or the result will be incorrect
+     */
+    #define RT_ALIGN(size, align)           (((size) + (align) - 1) & ~((align) - 1))
+
+In short: if a single line of comment says it, keep it trailing; if it takes a
+paragraph, put it above.
+
+Doxygen accepts both forms, but there is one difference worth knowing: with
+`MACRO_EXPANSION` enabled, a trailing `/**<` is attached to the expansion site,
+so a macro expanded in several places can carry its comment somewhere unexpected.
+A block comment above the definition always stays with the definition, so prefer
+it for macros that get expanded frequently.
+
+
+# 9. Indent
+
+Please use TAB or 4 spaces to indent. It's preferred to use 4 spaces. If no
+other special meanings, the indent should begin right after "{":
+
+    if (condition)
+    {
+        /* others */
+    }
+
+The only one exception is switch. In case statements for switches, "case" should be
+aligned with "switch":
+
+    switch (value)
+    {
+    case value1:
+        break;
+    }
+
+"case" is aligned with "switch". The following code block should be indented.
+
+
+# 10. Braces and Spaces
+
+For ease of reading, it is advised that braces should occupy the whole line
+instead of following other statements. Like:
+
+    if (condition)
+    {
+        /* others */
+    }
+
+When matching braces have their own lines, the reader identifies the code
+blocks easily.
+
+There should be a space before parentheses when it's not a function call. For
+example:
+
+    if (x <= y)
+    {
+        /* others */
+    }
+
+    for (index = 0; index < MAX_NUMBER; index ++)
+    {
+        /* others */
+    }
+
+In expressions, there should be a space between most binary and ternary
+operators and the strings. There should be no spaces around(inside) parentheses, like:
+
+    if ( x <= y )
+    {
+        /* other */
+    }
+
+This is a bad practice.
+
+
+# 11. trace, log Information
+
+In RT-Thread, rt_kprintf is a commonly used logging routine. In RT-Thread
+rt_kprintf is implemented as a polling, non-interrupting string output. It is
+suitable in "instant" situations such as interrupt context. The polling method
+would have influence to the timing sequence of the log output.
+
+It is not recommended to use rt_kprintf frequently. Please be aware that frequen
+use will make your code run slower.
+
+Logging should be off by default and can be turned on by a switch (e.g. a
+variable or a macro). When logging, it should be easy to understand and easy to
+determine where the problem is.
+
+
+# 12. Functions
+
+Functions in kernel should be K.I.S.S. ("Keep it simple, stupid.") If the function
+is too long, you should split it into smaller ones, with each of them simplified to
+be easy to understand.
+
+
+# 13. Objects
+
+The kernel of RT-Thread uses object-oriented techniques in C. The naming convention
+is: structure names are the object names, object names + verb phrases are the
+method names of objects:
+
+    struct rt_timer
+    {
+        struct rt_object parent;
+        /* other fields */
+    };
+    typedef struct rt_timer* rt_timer_t;
+
+The definition of structure rt_timer stands for the object definition of timer
+object.
+
+    rt_timer_t rt_timer_create(const char* name,
+        void (*timeout)(void* parameter), void* parameter,
+        rt_tick_t time, rt_uint8_t flag);
+    rt_err_t rt_timer_delete(rt_timer_t timer);
+    rt_err_t rt_timer_start(rt_timer_t timer);
+    rt_err_t rt_timer_stop(rt_timer_t timer);
+
+rt_timer + verb phrase stands for the method that could be used on a timer object.
+
+When creating a new object, think twice on memory allocations: whether a static
+object could be created or it could only created dynamically on the heap. Allocations
+can be slower, but may be necessary in dynamic environments.
+
+# 14. Format Code
+
+RT-Thread now uses clang-format as the unified code formatting tool. Before
+submitting C/C++ source files, header files, and related source files, format
+them with the `.clang-format` configuration in the repository root. Do not use
+manual formatting or old astyle parameters that conflict with this configuration.
+
+Use clang-format **22.1.8**, pinned in `tools/ci/requirements-format.txt`.
+Local development, format checks, and the manual formatting workflow use the
+same version to avoid formatting differences. Install it from the repository
+root and verify the version:
+
+    python -m pip install -r tools/ci/requirements-format.txt
+    clang-format --version
+
+Configure your editor to use the same installed clang-format executable.
+
+Common commands:
+
+    clang-format -style=file -i path/to/file.c
+    clang-format -style=file -i path/to/file.h
+
+When formatting files in batches, limit the command to files related to the
+current change and avoid large unrelated formatting changes. If a subdirectory
+has its own `.clang-format`, use the nearest configuration for files under that
+directory.
+
+In addition to clang-format, keep source files encoded as UTF-8, use `\n` line
+endings, remove trailing whitespace, and avoid committing unrelated formatting
+changes produced by editors.
+

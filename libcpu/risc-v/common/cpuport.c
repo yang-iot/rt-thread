@@ -1,129 +1,110 @@
 /*
- * Copyright (c) 2006-2018, RT-Thread Development Team
+ * Copyright (c) 2006-2025, RT-Thread Development Team
  *
  * SPDX-License-Identifier: Apache-2.0
  *
  * Change Logs:
  * Date           Author       Notes
- * 2018/10/28     Bernard      The unify RISC-V porting code.
+ * 2018-10-28     Bernard      The unify RISC-V porting code.
+ * 2025-04-20     GuEe-GUI     Port ffsN and clz, spinlock
  */
 
 #include <rthw.h>
 #include <rtthread.h>
 
-#include "cpuport.h"
+#include <asm-generic.h>
 
-#ifndef RT_USING_SMP
-volatile rt_ubase_t  rt_interrupt_from_thread = 0;
-volatile rt_ubase_t  rt_interrupt_to_thread   = 0;
-volatile rt_uint32_t rt_thread_switch_interrupt_flag = 0;
+#ifdef RT_USING_CPU_FFS
+
+int __rt_ffs(int value)
+{
+#ifdef __GNUC__
+    return __builtin_ffs(value);
+#else
+#error Unsupport ffs
 #endif
+}
 
-struct rt_hw_stack_frame
+unsigned long __rt_ffsl(unsigned long value)
 {
-    rt_ubase_t epc;        /* epc - epc    - program counter                     */
-    rt_ubase_t ra;         /* x1  - ra     - return address for jumps            */
-    rt_ubase_t mstatus;    /*              - machine status register             */
-    rt_ubase_t gp;         /* x3  - gp     - global pointer                      */
-    rt_ubase_t tp;         /* x4  - tp     - thread pointer                      */
-    rt_ubase_t t0;         /* x5  - t0     - temporary register 0                */
-    rt_ubase_t t1;         /* x6  - t1     - temporary register 1                */
-    rt_ubase_t t2;         /* x7  - t2     - temporary register 2                */
-    rt_ubase_t s0_fp;      /* x8  - s0/fp  - saved register 0 or frame pointer   */
-    rt_ubase_t s1;         /* x9  - s1     - saved register 1                    */
-    rt_ubase_t a0;         /* x10 - a0     - return value or function argument 0 */
-    rt_ubase_t a1;         /* x11 - a1     - return value or function argument 1 */
-    rt_ubase_t a2;         /* x12 - a2     - function argument 2                 */
-    rt_ubase_t a3;         /* x13 - a3     - function argument 3                 */
-    rt_ubase_t a4;         /* x14 - a4     - function argument 4                 */
-    rt_ubase_t a5;         /* x15 - a5     - function argument 5                 */
-    rt_ubase_t a6;         /* x16 - a6     - function argument 6                 */
-    rt_ubase_t a7;         /* x17 - s7     - function argument 7                 */
-    rt_ubase_t s2;         /* x18 - s2     - saved register 2                    */
-    rt_ubase_t s3;         /* x19 - s3     - saved register 3                    */
-    rt_ubase_t s4;         /* x20 - s4     - saved register 4                    */
-    rt_ubase_t s5;         /* x21 - s5     - saved register 5                    */
-    rt_ubase_t s6;         /* x22 - s6     - saved register 6                    */
-    rt_ubase_t s7;         /* x23 - s7     - saved register 7                    */
-    rt_ubase_t s8;         /* x24 - s8     - saved register 8                    */
-    rt_ubase_t s9;         /* x25 - s9     - saved register 9                    */
-    rt_ubase_t s10;        /* x26 - s10    - saved register 10                   */
-    rt_ubase_t s11;        /* x27 - s11    - saved register 11                   */
-    rt_ubase_t t3;         /* x28 - t3     - temporary register 3                */
-    rt_ubase_t t4;         /* x29 - t4     - temporary register 4                */
-    rt_ubase_t t5;         /* x30 - t5     - temporary register 5                */
-    rt_ubase_t t6;         /* x31 - t6     - temporary register 6                */
-};
+#ifdef __GNUC__
+    return __builtin_ffsl(value);
+#else
+#error Unsupport ffsl
+#endif
+}
 
-/**
- * This function will initialize thread stack
- *
- * @param tentry the entry of thread
- * @param parameter the parameter of entry
- * @param stack_addr the beginning stack address
- * @param texit the function will be called when thread exit
- *
- * @return stack address
- */
-rt_uint8_t *rt_hw_stack_init(void       *tentry,
-                             void       *parameter,
-                             rt_uint8_t *stack_addr,
-                             void       *texit)
+unsigned long __rt_clz(unsigned long value)
 {
-    struct rt_hw_stack_frame *frame;
-    rt_uint8_t         *stk;
-    int                i;
+#ifdef __GNUC__
+    return __builtin_clzl(value);
+#else
+#error Unsupport clz
+#endif
+}
+#endif /* RT_USING_CPU_FFS */
 
-    stk  = stack_addr + sizeof(rt_ubase_t);
-    stk  = (rt_uint8_t *)RT_ALIGN_DOWN((rt_ubase_t)stk, REGBYTES);
-    stk -= sizeof(struct rt_hw_stack_frame);
+#ifdef RT_USING_SMART
+#if defined(RT_USING_SMP) && RT_CPUS_NR > 1
+extern void percpu_write(rt_ubase_t offset, const void *data, rt_size_t size);
 
-    frame = (struct rt_hw_stack_frame *)stk;
+void rt_hw_set_process_id(int pid)
+{
+    percpu_write(0, &pid, sizeof(pid));
+}
+#else
+static int process_id;
 
-    for (i = 0; i < sizeof(struct rt_hw_stack_frame) / sizeof(rt_ubase_t); i++)
+void rt_hw_set_process_id(int pid)
+{
+    process_id = pid;
+}
+#endif /* RT_USING_SMP && RT_CPUS_NR > 1 */
+#endif /* RT_USING_SMART */
+
+#ifdef RT_USING_SMP
+void rt_hw_spin_lock_init(rt_hw_spinlock_t *lock)
+{
+    lock->slock = 0;
+}
+
+void rt_hw_spin_lock(rt_hw_spinlock_t *lock)
+{
+    unsigned long tmp;
+    unsigned short ticket;
+
+    /*
+     * The two 16-bit counters occupy the low word, also on RV64.
+     * Use an AMO so ticket allocation cannot livelock with an unlock
+     * retrying LR/SC on the same reservation. Word width wraps next at 16 bits.
+     */
+    __asm__ volatile (
+            "amoadd.w.aqrl %0, %2, (%1)"
+            : "=&r" (tmp)
+            : "r" (&lock->slock), "r" (1UL << 16)
+            : "memory");
+
+    ticket = (tmp >> 16) & 0xffff;
+
+    while (HWREG16(&lock->tickets.owner) != ticket)
     {
-        ((rt_ubase_t *)frame)[i] = 0xdeadbeef;
+        __asm__ volatile (OPC_PAUSE_I);
     }
 
-    frame->ra      = (rt_ubase_t)texit;
-    frame->a0      = (rt_ubase_t)parameter;
-    frame->epc     = (rt_ubase_t)tentry;
-
-    /* force to machine mode(MPP=11) and set MPIE to 1 */
-    frame->mstatus = 0x00007880;
-
-    return stk;
+    /* Order critical-section accesses after observing the owner's release. */
+    rt_hw_barrier();
 }
 
-/*
- * #ifdef RT_USING_SMP
- * void rt_hw_context_switch_interrupt(void *context, rt_ubase_t from, rt_ubase_t to, struct rt_thread *to_thread);
- * #else
- * void rt_hw_context_switch_interrupt(rt_ubase_t from, rt_ubase_t to);
- * #endif
- */
-#ifndef RT_USING_SMP
-void rt_hw_context_switch_interrupt(rt_ubase_t from, rt_ubase_t to)
+void rt_hw_spin_unlock(rt_hw_spinlock_t *lock)
 {
-    if (rt_thread_switch_interrupt_flag == 0)
-        rt_interrupt_from_thread = from;
+    /*
+     * Only the holder writes owner. Publish critical-section accesses before
+     * advancing it; a halfword store preserves concurrently allocated tickets.
+     */
+    rt_hw_barrier();
+    HWREG16(&lock->tickets.owner) =
+            (unsigned short)(HWREG16(&lock->tickets.owner) + 1);
 
-    rt_interrupt_to_thread = to;
-    rt_thread_switch_interrupt_flag = 1;
-
-    return ;
+    rt_hw_barrier();
 }
-#endif /* end of RT_USING_SMP */
-
-/** shutdown CPU */
-void rt_hw_cpu_shutdown()
-{
-    rt_uint32_t level;
-    rt_kprintf("shutdown...\n");
-
-    level = rt_hw_interrupt_disable();
-    while (level)
-    {
-        RT_ASSERT(0);
-    }
-}
+#endif /* RT_USING_SMP */

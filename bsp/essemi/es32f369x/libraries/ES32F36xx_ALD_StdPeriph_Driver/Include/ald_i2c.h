@@ -7,11 +7,27 @@
  * @version V1.0
  * @date    15 Nov 2019
  * @author  AE Team
- * @note
- *
- * Copyright (C) Shanghai Eastsoft Microelectronics Co. Ltd. All rights reserved.
- *
- ********************************************************************************
+  * @note
+  *          Change Logs:
+  *          Date            Author          Notes
+  *          30 Jun 2020     AE Team         The first version
+  *
+  * Copyright (C) Shanghai Eastsoft Microelectronics Co. Ltd. All rights reserved.
+  *
+  * SPDX-License-Identifier: Apache-2.0
+  *
+  * Licensed under the Apache License, Version 2.0 (the License); you may
+  * not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  **********************************************************************************
  */
 
 #ifndef __ALD_I2C_H__
@@ -41,91 +57,90 @@ extern "C" {
   * @brief I2C Error Code
   */
 typedef enum {
-	I2C_ERROR_NONE    = 0x0,  /**< No error */
-	I2C_ERROR_BERR    = 0x1,  /**< Berr error */
-	I2C_ERROR_ARLO    = 0x2,  /**< Arlo error */
-	I2C_ERROR_RUD     = 0x4,  /**< Rx underflow error */
-	I2C_ERROR_AF      = 0x8,  /**< Af error */	
-	I2C_ERROR_ROV     = 0x10,  /**< Rx overflow error */
-	I2C_ERROR_RF      = 0x20,  /**< Rx full error */
-	I2C_ERROR_TUD     = 0x40,  /**< Tx underflow error */
-	I2C_ERROR_TOV     = 0x80,  /**< Tx overflow error */
-	I2C_ERROR_TE      = 0x100,  /**< Tx empty error */
-	I2C_ERROR_DMA     = 0x200, /**< Dma error */
-	I2C_ERROR_TIMEOUT = 0x400  /**< Timeout error */
+	I2C_ERROR_NONE    = 0x0U,	/**< No error */
+	I2C_ERROR_BERR    = 0x1U,	/**< Berr error */
+	I2C_ERROR_ARLO    = 0x2U,	/**< Arlo error */
+	I2C_ERROR_RUD     = 0x4U,	/**< Rx underflow error */
+	I2C_ERROR_AF      = 0x8U,	/**< Af error */	
+	I2C_ERROR_ROV     = 0x10U,	/**< Rx overflow error */
+	I2C_ERROR_RF      = 0x20U,	/**< Rx full error */
+	I2C_ERROR_TUD     = 0x40U,	/**< Tx underflow error */
+	I2C_ERROR_TOV     = 0x80U,	/**< Tx overflow error */
+	I2C_ERROR_TE      = 0x100U,	/**< Tx empty error */
+	I2C_ERROR_DMA     = 0x200U,	/**< Dma error */
+	I2C_ERROR_TIMEOUT = 0x400U,	/**< Timeout error */
 } i2c_error_t;
 
 /**
   * @brief I2C state structure definition
   */
 typedef enum {
-	I2C_STATE_RESET   = 0x0,  /**< Peripheral is not yet Initialized */
-	I2C_STATE_READY   = 0x20, /**< Peripheral Initialized and ready for use */
-	I2C_STATE_BUSY    = 0x24, /**< An internal process is ongoing */
-	I2C_STATE_BUSY_TX = 0x21, /**< Data Transmission process is ongoing */
-	I2C_STATE_BUSY_RX = 0x22, /**< Data Reception process is ongoing */
-	I2C_STATE_TIMEOUT = 0xA0, /**< timeout state */
-	I2C_STATE_ERROR   = 0xE0  /**< Error */
+	I2C_STATE_RESET   = 0x0U,	/**< Peripheral is not yet Initialized */
+	I2C_STATE_READY   = 0x20U,	/**< Peripheral Initialized and ready for use */
+	I2C_STATE_BUSY    = 0x24U,	/**< An internal process is ongoing */
+	I2C_STATE_BUSY_TX = 0x21U,	/**< Data Transmission process is ongoing */
+	I2C_STATE_BUSY_RX = 0x22U,	/**< Data Reception process is ongoing */
+	I2C_STATE_TIMEOUT = 0xA0U,	/**< timeout state */
+	I2C_STATE_ERROR   = 0xE0U,	/**< Error */
 } i2c_state_t;
 
 /**
   * @brief I2C Addressing Mode
   */
 typedef enum {
-	I2C_ADDR_7BIT  = 0x0, /**< 7 bit address */
-	I2C_ADDR_10BIT = 0x1, /**< 10 bit address */
+	I2C_ADDR_7BIT  = 0x0U,	/**< 7 bit address */
+	I2C_ADDR_10BIT = 0x1U,	/**< 10 bit address */
 } i2c_addr_t;
 
 /**
   * @brief I2C Dual Addressing Mode
   */
 typedef enum {
-	I2C_DUALADDR_DISABLE = 0x0, /**< dual address is disable */
-	I2C_DUALADDR_ENABLE  = 0x1  /**< dual address is enable */
+	I2C_DUALADDR_DISABLE = 0x0U,	/**< dual address is disable */
+	I2C_DUALADDR_ENABLE  = 0x1U,	/**< dual address is enable */
 } i2c_dual_addr_t;
 
 /**
   * @brief I2C General Call Addressing mode
   */
 typedef enum {
-	I2C_GENERALCALL_DISABLE = 0x0, /**< general call address is disable */
-	I2C_GENERALCALL_ENABLE  = 0x1 /**< general call address is enable */
+	I2C_GENERALCALL_DISABLE = 0x0U,	/**< general call address is disable */
+	I2C_GENERALCALL_ENABLE  = 0x1U,	/**< general call address is enable */
 } i2c_general_addr_t;
 
 /**
   * @brief I2C Nostretch Mode
   */
 typedef enum {
-	I2C_NOSTRETCH_DISABLE = 0x0, /**< Nostretch disable */
-	I2C_NOSTRETCH_ENABLE  = 0x1 /**< Nostretch enable */
+	I2C_NOSTRETCH_DISABLE = 0x0U,	/**< Nostretch disable */
+	I2C_NOSTRETCH_ENABLE  = 0x1U,	/**< Nostretch enable */
 } i2c_nostretch_t;
 
 /**
   * @brief I2C Memory Address Size
   */
 typedef enum {
-	I2C_MEMADD_SIZE_8BIT  = 0x8, /**< 8 bit memory address size */
-	I2C_MEMADD_SIZE_16BIT = 0x10 /**< 10 bit memory address size */
+	I2C_MEMADD_SIZE_8BIT  = 0x8U,	/**< 8 bit memory address size */
+	I2C_MEMADD_SIZE_16BIT = 0x10U,	/**< 10 bit memory address size */
 } i2c_addr_size_t;
 
 /**
   * @brief I2C mode structure definition
   */
-typedef enum
-{
-	I2C_MODE_NONE   = 0x0,  /**< No I2C communication on going */
-	I2C_MODE_MASTER = 0x10, /**< I2C communication is in Master mode */
-	I2C_MODE_SLAVE  = 0x20, /**< I2C communication is in Slave mode */
-	I2C_MODE_MEM    = 0x40  /**< I2C communication is in Memory mode */
+typedef enum {
+	I2C_MODE_NONE   = 0x0U,		/**< No I2C communication on going */
+	I2C_MODE_MASTER = 0x10U,	/**< I2C communication is in Master mode */
+	I2C_MODE_SLAVE  = 0x20U,	/**< I2C communication is in Slave mode */
+	I2C_MODE_MEM    = 0x40U,	/**< I2C communication is in Memory mode */
 } i2c_mode_t;
 
 /**
   * @brief I2C Clock
   */
 typedef enum {
-	I2C_STANDARD_MODE_MAX_CLK     = 100000,  /**< Standard mode clock */
-	I2C_FAST_MODE_MAX_CLK         = 400000,  /**< Fast mode clock */
-	I2C_EXTREME_FAST_MODE_MAX_CLK = 1000000, /**< Extreme mode clock */
+	I2C_STANDARD_MODE_MAX_CLK     = 100000U,	/**< Standard mode clock */
+	I2C_FAST_MODE_MAX_CLK         = 400000U,	/**< Fast mode clock */
+	I2C_EXTREME_FAST_MODE_MAX_CLK = 1000000U,	/**< Extreme mode clock */
 } i2c_clock_t;
 
 /**
@@ -247,7 +262,7 @@ typedef enum {
   * @brief I2C TRISE Register
   */
 typedef enum {
-	I2C_TRISE_TRISE = 0x3F, /**< TRISE BITS */
+	I2C_TRISE_TRISE = 0x3FU, /**< TRISE BITS */
 } i2c_trise_t;
 
 /**
@@ -273,10 +288,10 @@ typedef struct i2c_handle_s {
 	uint8_t *p_buff;          /**< Pointer to I2C transfer buffer */
 	uint16_t xfer_size;       /**< I2C transfer size */
 	__IO uint16_t xfer_count; /**< I2C transfer counter */
-#ifdef ALD_DMA
+
 	dma_handle_t hdmatx;      /**< I2C Tx DMA handle parameters */
 	dma_handle_t hdmarx;      /**< I2C Rx DMA handle parameters */
-#endif
+
 	lock_state_t lock;        /**< I2C locking object */
 	__IO i2c_state_t state;   /**< I2C communication state */
 	__IO i2c_mode_t mode;     /**< I2C communication mode */
@@ -298,7 +313,7 @@ typedef struct i2c_handle_s {
 /** @defgroup I2C_Public_Macro I2C Public Macros
   * @{
   */
-#define I2C_FLAG_MASK	(0xFFFFFFFF)
+#define I2C_FLAG_MASK	(0xFFFFFFFFU)
 #define I2C_RESET_HANDLE_STATE(x) ((x)->state = I2C_STATE_RESET)
 #define I2C_ENABLE_IT(x, y)   (SET_BIT((x)->perh->IER, (y)))
 #define I2C_DISABLE_IT(x, y)  (SET_BIT((x)->perh->IDR, (y)))
@@ -307,9 +322,11 @@ typedef struct i2c_handle_s {
 #define I2C_GET_IT_SOURCE(x, y) ((((x)->perh->IFM & (y))  == (y)) ? SET : RESET)
 #define I2C_GET_FLAG(x, y) ((((x)->perh->STAT) & ((y) & I2C_FLAG_MASK)) != RESET)
 #define I2C_MASTER_GET_DIR(x) (READ_BIT(((x)->perh->CON2), I2C_CON2_RD_WRN_MSK))
-#define I2C_SLAVE_GET_DIR(x) (READ_BIT(hperh->perh->STAT, I2C_STAT_DIR_MSK))
+#define I2C_SLAVE_GET_DIR(x) (READ_BIT(((x)->perh->STAT), I2C_STAT_DIR_MSK))
 #define I2C_ENABLE(x)  (SET_BIT((x)->perh->CON1, I2C_CON1_PE_MSK))
 #define I2C_DISABLE(x) (CLEAR_BIT((x)->perh->CON1, I2C_CON1_PE_MSK))
+#define I2C_RST_TXFIFO(x) (SET_BIT((x)->perh->FCON, I2C_FCON_TXFRST_MSK))
+#define I2C_RST_RXFIFO(x) (SET_BIT((x)->perh->FCON, I2C_FCON_RXFRST_MSK))
 /**
   * @}
   */
@@ -395,7 +412,7 @@ ald_status_t ald_i2c_mem_write_by_it(i2c_handle_t *hperh, uint16_t dev_addr, uin
 ald_status_t ald_i2c_mem_read_by_it(i2c_handle_t *hperh, uint16_t dev_addr, uint16_t mem_addr,
                              i2c_addr_size_t add_size, uint8_t *buf, uint32_t size);
 
-#ifdef ALD_DMA
+
  /** Non-Blocking mode: DMA */
 ald_status_t ald_i2c_master_send_by_dma(i2c_handle_t *hperh, uint16_t dev_addr,
                                      uint8_t *buf, uint8_t size, uint8_t channel);
@@ -407,7 +424,7 @@ ald_status_t ald_i2c_mem_write_by_dma(i2c_handle_t *hperh, uint16_t dev_addr, ui
                                  uint8_t *buf, uint8_t size, uint8_t channel);
 ald_status_t ald_i2c_mem_read_by_dma(i2c_handle_t *hperh, uint16_t dev_addr, uint16_t mem_addr,
                                 i2c_addr_size_t add_size, uint8_t *buf, uint8_t size, uint8_t channel);
-#endif
+
 /**
  * @}
  */

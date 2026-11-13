@@ -1,0 +1,9 @@
+config RT_GRAPHIC_ROMFB_WIDTH
+    int "ROM FB width"
+    depends on RT_GRAPHIC_FB
+    default 800
+
+config RT_GRAPHIC_ROMFB_HEIGHT
+    int "ROM FB height"
+    depends on RT_GRAPHIC_FB
+    default 600

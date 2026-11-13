@@ -11,6 +11,20 @@
   *
   * Copyright (C) Shanghai Eastsoft Microelectronics Co. Ltd. All rights reserved.
   *
+  * SPDX-License-Identifier: Apache-2.0
+  *
+  * Licensed under the Apache License, Version 2.0 (the License); you may
+  * not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  *
   *********************************************************************************
   */
 
@@ -36,21 +50,21 @@ extern "C" {
   * @{
   */
 #define FLASH_REG_UNLOCK()				\
-    do {							\
-        if (op_cmd == OP_FLASH)	 {			\
-            WRITE_REG(MSC->FLASHKEY, 0x8ACE0246);	\
-            WRITE_REG(MSC->FLASHKEY, 0x9BDF1357);	\
-        }						\
-        else {						\
-            WRITE_REG(MSC->INFOKEY, 0x7153BFD9);	\
-            WRITE_REG(MSC->INFOKEY, 0x0642CEA8);	\
-        }						\
-    } while (0)
+do {							\
+	if (op_cmd == OP_FLASH)	 {			\
+		WRITE_REG(MSC->FLASHKEY, 0x8ACE0246U);	\
+		WRITE_REG(MSC->FLASHKEY, 0x9BDF1357U);	\
+	}						\
+	else {						\
+		WRITE_REG(MSC->INFOKEY, 0x7153BFD9U);	\
+		WRITE_REG(MSC->INFOKEY, 0x0642CEA8U);	\
+	}						\
+} while (0)
 #define FLASH_REQ()			(SET_BIT(MSC->FLASHCR, MSC_FLASHCR_FLASHREQ_MSK))
 #define FLASH_REQ_FIN()			(CLEAR_BIT(MSC->FLASHCR, MSC_FLASHCR_FLASHREQ_MSK))
 #define FLASH_IAP_ENABLE()		(SET_BIT(MSC->FLASHCR, MSC_FLASHCR_IAPEN_MSK))
 #define FLASH_IAP_DISABLE()		(CLEAR_BIT(MSC->FLASHCR, MSC_FLASHCR_IAPEN_MSK))
-#define FLASH_BASE_ADDR			0x00000000
+#define FLASH_BASE_ADDR			0x00000000U
 #define	FLASH_PAGE_SIZE			1024UL
 #define FLASH_WORD_SIZE			8UL
 #define FLASH_TOTAL_SIZE		256UL
@@ -67,9 +81,9 @@ extern "C" {
 #define INFO_PAGE_ADDR(ADDR)		((ADDR) & (~INFO_PAGE_MASK))
 
 #ifdef USE_FLASH_FIFO
-#define	FLASH_FIFO 1
+	#define	FLASH_FIFO 1
 #else
-#define	FLASH_FIFO 0
+	#define	FLASH_FIFO 0
 #endif
 /**
   * @}
@@ -78,24 +92,22 @@ extern "C" {
 /** @defgroup FLASH_Private_Types FLASH Private Types
   * @{
   */
-typedef enum
-{
-    FLASH_CMD_AE     = 0x000051AE,	/**< Program area erase all */
-    FLASH_CMD_PE     = 0x00005EA1,	/**< Page erase  */
-    FLASH_CMD_WP     = 0x00005DA2,	/**< Word program */
-    FLASH_CMD_DATAPE = 0x00005BA4,	/**< Data flash page page erase */
-    FLASH_CMD_DATAWP = 0x00005AA5,	/**< Data flash word program */
+typedef enum {
+	FLASH_CMD_AE     = 0x000051AEU,	/**< Program area erase all */
+	FLASH_CMD_PE     = 0x00005EA1U,	/**< Page erase  */
+	FLASH_CMD_WP     = 0x00005DA2U,	/**< Word program */
+	FLASH_CMD_DATAPE = 0x00005BA4U,	/**< Data flash page page erase */
+	FLASH_CMD_DATAWP = 0x00005AA5U,	/**< Data flash word program */
 } flash_cmd_type;
 
-typedef enum
-{
-    OP_FLASH = 0,	/**< Operate Pragram area */
-    OP_INFO  = 1,	/**< Operate info area */
+typedef enum {
+	OP_FLASH = 0U,	/**< Operate Pragram area */
+	OP_INFO  = 1U,	/**< Operate info area */
 } op_cmd_type;
 
 /**
   * @}
-  */
+  */ 
 /** @addtogroup Flash_Private_Functions
   * @{
   */

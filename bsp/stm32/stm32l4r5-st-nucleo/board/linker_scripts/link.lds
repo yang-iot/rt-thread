@@ -11,7 +11,7 @@ MEMORY
     RAM3 (rw) : ORIGIN = 0x10000000, LENGTH =   64k /* 64K sram */
 }
 ENTRY(Reset_Handler)
-_system_stack_size = 0x800;
+_system_stack_size = 0x400;
 
 SECTIONS
 {
@@ -40,7 +40,7 @@ SECTIONS
         __vsymtab_start = .;
         KEEP(*(VSymTab))
         __vsymtab_end = .;
-		
+
         /* section information for initial. */
         . = ALIGN(4);
         __rt_init_start = .;
@@ -62,15 +62,15 @@ SECTIONS
     .ARM.exidx :
     {
         *(.ARM.exidx* .gnu.linkonce.armexidx.*)
-
-        /* This is used by the startup in order to initialize the .data secion */
-        _sidata = .;
     } > ROM
     __exidx_end = .;
 
+    /* Used by the startup to initialize .data. */
+    _sidata = LOADADDR(.data);
+
     /* .data section which is used for initialized data */
 
-    .data : AT (_sidata)
+    .data :
     {
         . = ALIGN(4);
         /* This is used by the startup in order to initialize the .data secion */
@@ -87,14 +87,14 @@ SECTIONS
         . = ALIGN(4);
         /* This is used by the startup in order to initialize the .data secion */
         _edata = . ;
-    } >RAM1
+    } >RAM1 AT> ROM
 
-    .stack : 
+    .stack (NOLOAD) :
     {
-        . = ALIGN(4);
+        . = ALIGN(8);
         _sstack = .;
         . = . + _system_stack_size;
-        . = ALIGN(4);
+        . = ALIGN(8);
         _estack = .;
     } >RAM1
 
@@ -112,7 +112,7 @@ SECTIONS
         . = ALIGN(4);
         /* This is used by the startup in order to initialize the .bss secion */
         _ebss = . ;
-        
+
         *(.bss.init)
     } > RAM1
     __bss_end = .;

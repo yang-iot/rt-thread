@@ -17,10 +17,23 @@
 #include <rtdevice.h>
 #include <lcd_ili9341.h>
 
-static void ili9341_delay_ms(rt_uint32_t nms)
+#if defined(NU_PKG_ILI9341_WITH_OFFSCREEN_FRAMEBUFFER)
+    #if !defined(NU_PKG_ILI9341_LINE_BUFFER_NUMBER)
+        #define NU_PKG_ILI9341_LINE_BUFFER_NUMBER   YSIZE_PHYS
+    #endif
+#endif
+
+#define ili9341_delay_ms(ms)    rt_thread_mdelay(ms)
+
+static struct rt_device_graphic_info g_Ili9341Info =
 {
-    rt_thread_mdelay(nms);
-}
+    .bits_per_pixel = 16,
+    .pixel_format = RTGRAPHIC_PIXEL_FORMAT_RGB565,
+    .framebuffer = RT_NULL,
+    .width = XSIZE_PHYS,
+    .pitch = XSIZE_PHYS * 2,
+    .height = YSIZE_PHYS
+};
 
 static rt_err_t ili9341_pin_init(void)
 {
@@ -92,7 +105,11 @@ static rt_err_t ili9341_lcd_init(rt_device_t dev)
     ili9341_send_cmd_parameter(0x86);
 
     ili9341_send_cmd(0x36);
-    ili9341_send_cmd_parameter(0x48); // for 240x320
+
+    if (g_Ili9341Info.width == 240)
+        ili9341_send_cmd_parameter(0x48); // for 240x320
+    else
+        ili9341_send_cmd_parameter(0xE8); // for 320x240
 
     ili9341_send_cmd(0x3A);
     ili9341_send_cmd_parameter(0x55);
@@ -157,14 +174,50 @@ static rt_err_t ili9341_lcd_init(rt_device_t dev)
     return RT_EOK;
 }
 
-static void  ili9341_fillscreen(uint16_t color)
+#if defined(NU_PKG_ILI9341_WITH_OFFSCREEN_FRAMEBUFFER)
+static void ili9341_fillrect(uint16_t *pixels, struct rt_device_rect_info *pRectInfo)
 {
+    ili9341_set_column(pRectInfo->x, pRectInfo->x + pRectInfo->width - 1);
+    ili9341_set_page(pRectInfo->y, pRectInfo->y + pRectInfo->height - 1);
+    ili9341_send_cmd(0x2c);
+
+    ili9341_send_pixels(pixels, pRectInfo->height * pRectInfo->width * 2);
+}
+#endif
+
+static void ili9341_fillscreen(rt_uint16_t color)
+{
+#if defined(NU_PKG_ILI9341_WITH_OFFSCREEN_FRAMEBUFFER)
+    struct rt_device_rect_info rectinfo;
+    int filled_line_num = 0;
+
+    while (filled_line_num < YSIZE_PHYS)
+    {
+        int pixel_count;
+        rectinfo.x = 0;
+        rectinfo.y = filled_line_num;
+        rectinfo.width = XSIZE_PHYS;
+        rectinfo.height = (NU_PKG_ILI9341_LINE_BUFFER_NUMBER < YSIZE_PHYS) ? NU_PKG_ILI9341_LINE_BUFFER_NUMBER : YSIZE_PHYS;
+
+        pixel_count = XSIZE_PHYS * NU_PKG_ILI9341_LINE_BUFFER_NUMBER;
+        rt_uint16_t *pu16ShadowBuf = (rt_uint16_t *)g_Ili9341Info.framebuffer;
+
+        while (pixel_count > 0)
+        {
+            *pu16ShadowBuf++ = color;
+            pixel_count--;
+        }
+        ili9341_fillrect((uint16_t *)g_Ili9341Info.framebuffer, &rectinfo);
+        filled_line_num += NU_PKG_ILI9341_LINE_BUFFER_NUMBER;
+    }
+#else
     ili9341_set_column(0, (XSIZE_PHYS - 1));
     ili9341_set_page(0, (YSIZE_PHYS - 1));
     ili9341_send_cmd(0x2c);
 
     for (int i = 0; i < (XSIZE_PHYS * YSIZE_PHYS); i++)
         ili9341_send_pixel_data(color);
+#endif
 }
 
 static void ili9341_lcd_set_pixel(const char *color, int x, int y)
@@ -227,21 +280,25 @@ static rt_err_t ili9341_lcd_control(rt_device_t dev, int cmd, void *args)
 
         info = (struct rt_device_graphic_info *) args;
         RT_ASSERT(info != RT_NULL);
-
-        info->bits_per_pixel = 16;
-        info->pixel_format = RTGRAPHIC_PIXEL_FORMAT_RGB565;
-        info->framebuffer = RT_NULL;
-        info->width = XSIZE_PHYS;
-        info->height = YSIZE_PHYS;
+        rt_memcpy(args, (void *)&g_Ili9341Info, sizeof(struct rt_device_graphic_info));
     }
     break;
 
     case RTGRAPHIC_CTRL_RECT_UPDATE:
-        /* nothong to be done */
-        break;
+    {
+#if defined(NU_PKG_ILI9341_WITH_OFFSCREEN_FRAMEBUFFER)
+        struct rt_device_rect_info *psRectInfo = (struct rt_device_rect_info *)args;
+        rt_uint16_t *pixels  = (rt_uint16_t *)g_Ili9341Info.framebuffer;
+        RT_ASSERT(args);
 
+        ili9341_fillrect(pixels, psRectInfo);
+#else
+        /* nothong to be done */
+#endif
+    }
+    break;
     default:
-        break;
+        return -RT_ERROR;
     }
 
     return RT_EOK;
@@ -271,6 +328,12 @@ int rt_hw_lcd_ili9341_init(void)
     lcd_device.write = RT_NULL;
 
     lcd_device.user_data = &ili9341_ops;
+
+#if defined(NU_PKG_ILI9341_WITH_OFFSCREEN_FRAMEBUFFER)
+    g_Ili9341Info.framebuffer = rt_malloc_align((g_Ili9341Info.pitch * NU_PKG_ILI9341_LINE_BUFFER_NUMBER) + 32, 32);
+    RT_ASSERT(g_Ili9341Info.framebuffer != RT_NULL);
+    g_Ili9341Info.smem_len = g_Ili9341Info.pitch * NU_PKG_ILI9341_LINE_BUFFER_NUMBER;
+#endif
 
     /* register graphic device driver */
     rt_device_register(&lcd_device, "lcd", RT_DEVICE_FLAG_RDWR | RT_DEVICE_FLAG_STANDALONE);

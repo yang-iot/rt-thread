@@ -8,10 +8,26 @@
   * @date    19 Jun 2019
   * @author  AE Team
   * @note
+  *          Change Logs:
+  *          Date            Author          Notes
+  *          19 Jun 2019     AE Team         The first version
   *
   * Copyright (C) Shanghai Eastsoft Microelectronics Co. Ltd. All rights reserved.
   *
-  *********************************************************************************
+  * SPDX-License-Identifier: Apache-2.0
+  *
+  * Licensed under the Apache License, Version 2.0 (the License); you may
+  * not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  **********************************************************************************
   */
 
 #ifndef __ALD_CRYPT_H__
@@ -22,7 +38,6 @@
 #endif
 
 #include "utils.h"
-#include "ald_dma.h"
 
 /** @addtogroup ES32FXXX_ALD
   * @{
@@ -40,119 +55,119 @@
   * @brief CRYPT encrypt or decrypt select
   */
 typedef enum {
-	CRYPT_DECRYPT = 0,	/**< Decrypt */
-	CRYPT_ENCRYPT = 1,	/**< Encrypt */
+	CRYPT_DECRYPT = 0U,	/**< Decrypt */
+	CRYPT_ENCRYPT = 1U,	/**< Encrypt */
 } crypt_encs_t;
 
 /**
   * @brief CRYPT aes key select
   */
 typedef enum {
-	CRYPT_BITS_128 = 0,	/**< 128bit key for aes */
-	CRYPT_BITS_192 = 1,	/**< 192bit key for aes */
-	CRYPT_BITS_256 = 2,	/**< 256bit key for aes */
+	CRYPT_BITS_128 = 0U,	/**< 128bit key for aes */
+	CRYPT_BITS_192 = 1U,	/**< 192bit key for aes */
+	CRYPT_BITS_256 = 2U,	/**< 256bit key for aes */
 } crypt_aesks_t;
 
 /**
   * @brief CRYPT mode select
   */
 typedef enum {
-	CRYPT_MODE_ECB = 0,	/**< ECB */
-	CRYPT_MODE_CBC = 1,	/**< CBC */
-	CRYPT_MODE_CTR = 2,	/**< CTR */
+	CRYPT_MODE_ECB = 0U,	/**< ECB */
+	CRYPT_MODE_CBC = 1U,	/**< CBC */
+	CRYPT_MODE_CTR = 2U,	/**< CTR */
 } crypt_mode_t;
 
 /**
   * @brief CRYPT data type
   */
 typedef enum {
-	CRYPT_DATA_CHANGE_NO = 0,	/**< No exchange */
-	CRYPT_DATA_CHANGE_16 = 1,	/**< 16bit exchange */
-	CRYPT_DATA_CHANGE_8  = 2,	/**< 8bit exchange */
-	CRYPT_DATA_CHANGE_1  = 3,	/**< 1bit exchange */
+	CRYPT_DATA_CHANGE_NO = 0U,	/**< No exchange */
+	CRYPT_DATA_CHANGE_16 = 1U,	/**< 16bit exchange */
+	CRYPT_DATA_CHANGE_8  = 2U,	/**< 8bit exchange */
+	CRYPT_DATA_CHANGE_1  = 3U,	/**< 1bit exchange */
 } crypt_datatype_t;
 
 /**
   * @brief CRYPT des key select
   */
 typedef enum {
-	CRYPT_KEYS_2 = 0,	/**< 2 key for des */
-	CRYPT_KEYS_3 = 1,	/**< 3 key for des */
-	CRYPT_KEYS_1 = 2,	/**< 1 key for des */
+	CRYPT_KEYS_2 = 0U,	/**< 2 key for des */
+	CRYPT_KEYS_3 = 1U,	/**< 3 key for des */
+	CRYPT_KEYS_1 = 2U,	/**< 1 key for des */
 } crypt_desks_t;
 
 /**
   * @brief CRYPT crypt select
   */
 typedef enum {
-	CRYPT_CRYSEL_AES = 0,	/**< AES */
-	CRYPT_CRYSEL_DES = 1,	/**< DES */
+	CRYPT_CRYSEL_AES = 0U,	/**< AES */
+	CRYPT_CRYSEL_DES = 1U,	/**< DES */
 } crypt_crysel_t;
 
 /**
   * @brief CRYPT interrupt
   */
 typedef enum {
-	CRYPT_IT_IT = 0x80,	/**< Interrupt */
+	CRYPT_IT_IT = 0x80U,	/**< Interrupt */
 } crypt_it_t;
 
 /**
   * @brief CRYPT interrupt flag
   */
 typedef enum {
-	CRYPT_FLAG_AESIF = 0x1,  	/**< Aes flag */
-	CRYPT_FLAG_DESIF = 0x2,  	/**< Des flag */
-	CRYPT_FLAG_DONE  = 0x100,	/**< Complete flag */
+	CRYPT_FLAG_AESIF = 0x1U,  	/**< Aes flag */
+	CRYPT_FLAG_DESIF = 0x2U,  	/**< Des flag */
+	CRYPT_FLAG_DONE  = 0x100U,	/**< Complete flag */
 } crypt_flag_t;
 
 /**
   * @brief CRYPT key select
   */
 typedef enum {
-	CRYPT_AES_BITS_128 = 0x4,	/**< 128bit key of aes */
-	CRYPT_AES_BITS_192 = 0x6,	/**< 192bit key of aes */
-	CRYPT_AES_BITS_256 = 0x8,	/**< 192bit key of ase */
-	CRYPT_DES_KEYS_1   = 0x12,	/**< 1 key of des */
-	CRYPT_DES_KEYS_2   = 0x14,	/**< 2 key of des */
-	CRYPT_DES_KEYS_3   = 0x16,	/**< 3 key of des */
+	CRYPT_AES_BITS_128 = 0x4U,	/**< 128bit key of aes */
+	CRYPT_AES_BITS_192 = 0x6U,	/**< 192bit key of aes */
+	CRYPT_AES_BITS_256 = 0x8U,	/**< 192bit key of ase */
+	CRYPT_DES_KEYS_1   = 0x12U,	/**< 1 key of des */
+	CRYPT_DES_KEYS_2   = 0x14U,	/**< 2 key of des */
+	CRYPT_DES_KEYS_3   = 0x16U,	/**< 3 key of des */
 } crypt_ks_t;
 
 /**
   * @brief CRYPT state structures definition
   */
 typedef enum {
-	CRYPT_STATE_RESET = 0x0,	/**< Peripheral is not initialized */
-	CRYPT_STATE_READY = 0x1,	/**< Peripheral Initialized and ready for use */
-	CRYPT_STATE_BUSY  = 0x2,	/**< An internal process is ongoing */
-	CRYPT_STATE_ERROR = 0x4,	/**< Error */
+	CRYPT_STATE_RESET = 0x0U,	/**< Peripheral is not initialized */
+	CRYPT_STATE_READY = 0x1U,	/**< Peripheral Initialized and ready for use */
+	CRYPT_STATE_BUSY  = 0x2U,	/**< An internal process is ongoing */
+	CRYPT_STATE_ERROR = 0x4U,	/**< Error */
 } crypt_state_t;
 
 /**
   * @brief CRYPT key length
   */
 typedef enum {
-	KEY_2_LEN = 2,	/**< Key's lenth is 2 */
-	KEY_4_LEN = 4,	/**< Key's lenth is 4 */
-	KEY_6_LEN = 6,	/**< Key's lenth is 6 */
-	KEY_8_LEN = 8,	/**< Key's lenth is 8 */
+	KEY_2_LEN = 2U,	/**< Key's lenth is 2 */
+	KEY_4_LEN = 4U,	/**< Key's lenth is 4 */
+	KEY_6_LEN = 6U,	/**< Key's lenth is 6 */
+	KEY_8_LEN = 8U,	/**< Key's lenth is 8 */
 } crypt_key_len_t;
 
 /**
   * @brief CRYPT iv length
   */
 typedef enum {
-	IV_2_LEN = 2,	/**< iv's lenth is 2 */
-	IV_4_LEN = 4,	/**< iv's lenth is 4 */
+	IV_2_LEN = 2U,	/**< iv's lenth is 2 */
+	IV_4_LEN = 4U,	/**< iv's lenth is 4 */
 } crypt_ivr_len_t;
 
 /**
   * @brief CRYPT data type
   */
 typedef enum {
-	DATA_32_BIT = 0,	/**< 32 bit data,don't swap */
-	DATA_16_BIT = 1,	/**< 16 bit data,swap */
-	DATA_8_BIT  = 2,	/**< 8 bit data,swap */
-	DATA_1_BIT  = 3,	/**< 1 bit data, swap */
+	DATA_32_BIT = 0U,	/**< 32 bit data,don't swap */
+	DATA_16_BIT = 1U,	/**< 16 bit data,swap */
+	DATA_8_BIT  = 2U,	/**< 8 bit data,swap */
+	DATA_1_BIT  = 3U,	/**< 1 bit data, swap */
 } crypt_data_t;
 
 /**
@@ -170,10 +185,10 @@ typedef struct {
 typedef struct crypt_handle_s {
 	CRYPT_TypeDef *perh;	/**< Register base address */
 	crypt_init_t init;  	/**< CRYPT required parameters */
-#ifdef ALD_DMA
+
 	dma_handle_t hdma_m2p;	/**< CRYPT DMA handle parameters memory to crypt module */
 	dma_handle_t hdma_p2m;	/**< CRYPT DMA handle parameters crypt module to memory */
-#endif
+
 	uint8_t *plain_text; 	/**< Pointer to plain text */
 	uint8_t *cipher_text;	/**< Pointer to cipher text */
 	uint32_t size;       	/**< The size of crypt data buf */
@@ -199,7 +214,7 @@ typedef struct crypt_handle_s {
   */
 #define CRYPT_GO(handle) 		(SET_BIT((handle)->perh->CON, CRYPT_CON_GO_MSK))
 #define CRYPT_FIFOEN_ENABLE(handle) 	(SET_BIT((handle)->perh->CON, CRYPT_CON_FIFOEN_MSK))
-#define CRYPT_FIFOEN_DISABLE(handle) 	(CLEAR_BIT(handle)->perh->CON, CRYPT_CON_FIFOEN_MSK))
+#define CRYPT_FIFOEN_DISABLE(handle) 	(CLEAR_BIT((handle)->perh->CON, CRYPT_CON_FIFOEN_MSK))
 #define CRYPT_IVEN_ENABLE(handle) 	(SET_BIT((handle)->perh->CON, CRYPT_CON_IVEN_MSK))
 #define CRYPT_IVEN_DISABLE(handle) 	(CLEAR_BIT((handle)->perh->CON, CRYPT_CON_IVEN_MSK))
 #define CRYPT_IE_ENABLE(handle)		(SET_BIT((handle)->perh->CON, CRYPT_CON_IE_MSK))
@@ -265,12 +280,12 @@ extern ald_status_t ald_crypt_decrypt(crypt_handle_t *hperh, uint8_t * cipher_te
 extern ald_status_t ald_crypt_gcm_verify(crypt_handle_t *hperh, uint8_t *cipher_text, uint32_t size, uint8_t *aadata, uint32_t alen, uint8_t *tag);
 extern ald_status_t ald_crypt_encrypt_by_it(crypt_handle_t *hperh, uint8_t *plain_text, uint8_t *cipher_text, uint32_t size);
 extern ald_status_t ald_crypt_decrypt_by_it(crypt_handle_t *hperh, uint8_t *cipher_text, uint8_t *plain_text, uint32_t size);
-#ifdef ALD_DMA
+
 extern ald_status_t ald_crypt_encrypt_by_dma(crypt_handle_t *hperh, uint8_t * plain_text,
              uint8_t *cipher_text, uint32_t size, uint8_t channel_m2p, uint8_t channel_p2m);
 extern ald_status_t ald_crypt_decrypt_by_dma(crypt_handle_t *hperh, uint8_t * cipher_text,
                uint8_t *plain_text, uint32_t size, uint8_t channel_m2p, uint8_t channel_p2m);
-#endif
+
 /**
   * @}
   */
@@ -278,11 +293,11 @@ extern ald_status_t ald_crypt_decrypt_by_dma(crypt_handle_t *hperh, uint8_t * ci
 /** @addtogroup CRYPT_Public_Functions_Group3
   * @{
   */
-#ifdef ALD_DMA
+
 extern ald_status_t ald_crypt_dma_pause(crypt_handle_t *hperh);
 extern ald_status_t ald_crypt_dma_resume(crypt_handle_t *hperh);
 extern ald_status_t ald_crypt_dma_stop(crypt_handle_t *hperh);
-#endif
+
 extern void ald_crypt_irq_handler(crypt_handle_t *hperh);
 /**
   * @}

@@ -9,7 +9,7 @@ MEMORY
     RAM (rw) : ORIGIN = 0x20000000, LENGTH = 192k  /* 192KB sram */
 }
 ENTRY(Reset_Handler)
-_system_stack_size = 0x200;
+_system_stack_size = 0x400;
 
 SECTIONS
 {
@@ -62,15 +62,15 @@ SECTIONS
     .ARM.exidx :
     {
         *(.ARM.exidx* .gnu.linkonce.armexidx.*)
-
-        /* This is used by the startup in order to initialize the .data secion */
-        _sidata = .;
     } > ROM
     __exidx_end = .;
 
+    /* Used by the startup to initialize .data. */
+    _sidata = LOADADDR(.data);
+
     /* .data section which is used for initialized data */
 
-    .data : AT (_sidata)
+    .data :
     {
         . = ALIGN(4);
         /* This is used by the startup in order to initialize the .data secion */
@@ -88,14 +88,14 @@ SECTIONS
         . = ALIGN(4);
         /* This is used by the startup in order to initialize the .data secion */
         _edata = . ;
-    } > RAM
+    } > RAM AT> ROM
 
-    .stack : 
+    .stack (NOLOAD) :
     {
-        . = ALIGN(4);
+        . = ALIGN(8);
         _sstack = .;
         . = . + _system_stack_size;
-        . = ALIGN(4);
+        . = ALIGN(8);
         _estack = .;
     } > RAM
 
@@ -113,7 +113,7 @@ SECTIONS
         . = ALIGN(4);
         /* This is used by the startup in order to initialize the .bss secion */
         _ebss = . ;
-        
+
         *(.bss.init)
     } > RAM
     __bss_end = .;

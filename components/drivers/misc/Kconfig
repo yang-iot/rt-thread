@@ -1,0 +1,43 @@
+config RT_USING_DAC
+    bool "Using DAC device drivers"
+    default n
+
+config RT_USING_NULL
+    bool "Using NULL device drivers"
+    default n
+
+config RT_USING_ZERO
+    bool "Using ZERO device drivers"
+    default n
+
+config RT_USING_RANDOM
+    bool "Using RANDOM device drivers"
+    default n
+    help
+        Enable the /dev/random and /dev/urandom devices.
+
+        These devices are a non-cryptographic software PRNG. Do not use
+        them for cryptographic keys, nonces or other security-sensitive
+        values.
+
+menuconfig RT_USING_PWM
+    bool "Using PWM device drivers"
+    default n
+
+if RT_USING_DM && RT_USING_PWM
+    osource "$(SOC_DM_PWM_DIR)/Kconfig"
+endif
+
+config RT_USING_PULSE_ENCODER
+    bool "Using PULSE ENCODER device drivers"
+    default n
+
+config RT_USING_INPUT_CAPTURE
+    bool "Using INPUT CAPTURE device drivers"
+    default n
+
+if RT_USING_INPUT_CAPTURE
+    config RT_INPUT_CAPTURE_RB_SIZE
+        int "Set input capture ringbuffer size"
+        default 100
+endif

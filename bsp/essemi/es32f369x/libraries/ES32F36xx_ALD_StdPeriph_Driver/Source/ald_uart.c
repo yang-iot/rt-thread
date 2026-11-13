@@ -14,10 +14,26 @@
   * @date    21 Nov 2019
   * @author  AE Team
   * @note
+  *          Change Logs:
+  *          Date            Author          Notes
+  *          21 Nov 2019     AE Team         The first version
   *
   * Copyright (C) Shanghai Eastsoft Microelectronics Co. Ltd. All rights reserved.
   *
-  *********************************************************************************
+  * SPDX-License-Identifier: Apache-2.0
+  *
+  * Licensed under the Apache License, Version 2.0 (the License); you may
+  * not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  **********************************************************************************
   * @verbatim
   ==============================================================================
                         ##### How to use this driver #####
@@ -86,8 +102,7 @@
   ******************************************************************************
   */
 
-#include "ald_uart.h"
-#include "ald_cmu.h"
+#include "ald_conf.h"
 
 
 /** @addtogroup ES32FXXX_ALD
@@ -117,7 +132,7 @@ static void uart_dma_send_cplt(void *arg)
 
 	ald_uart_dma_req_config(hperh, UART_DMA_REQ_TX, DISABLE);
 	hperh->tx_count = 0;
-	ald_uart_interrupt_config(hperh, UART_IT_TSEMPTY, ENABLE);
+	ald_uart_interrupt_config(hperh, UART_IT_TBC, ENABLE);
 	CLEAR_BIT(hperh->state, UART_STATE_TX_MASK);
 
 	return;
@@ -130,12 +145,29 @@ static void uart_dma_send_cplt(void *arg)
   */
 static void uart_dma_recv_cplt(void *arg)
 {
+	uint32_t stat = 0;
+
 	uart_handle_t *hperh = (uart_handle_t *)arg;
 	hperh->tx_count = hperh->tx_size;
 
 	ald_uart_dma_req_config(hperh, UART_DMA_REQ_RX, DISABLE);
 	hperh->rx_count = 0;
 	CLEAR_BIT(hperh->state, UART_STATE_RX_MASK);
+	stat = hperh->perh->STAT;
+
+	/* Handle parity error */
+	if ((READ_BIT(stat, UART_STATUS_PERR)) != RESET)
+		hperh->err_code |= UART_ERROR_PE;
+
+	/* Handle frame error */
+	if ((READ_BIT(stat, UART_STATUS_FERR)) != RESET)
+		hperh->err_code |= UART_ERROR_FE;
+
+	/* Handle rx overflow error */
+	if ((READ_BIT(stat, UART_STATUS_RFOERR)) != RESET) {
+		hperh->err_code |= UART_ERROR_ORE;
+		UART_FIFO_RX_RESET(hperh);
+	}
 
 	if (hperh->rx_cplt_cbk)
 		hperh->rx_cplt_cbk(hperh);
@@ -202,12 +234,13 @@ static ald_status_t __uart_send_by_it(uart_handle_t *hperh)
 	if ((hperh->state & UART_STATE_TX_MASK) == 0x0)
 		return BUSY;
 
+	while(hperh->perh->STAT & (0x1 << 17));
 	hperh->perh->TXBUF = (uint8_t)(*hperh->tx_buf++ & 0x00FF);
 	hperh->tx_count++;
 
 	if (hperh->tx_count >= hperh->tx_size) {
 		ald_uart_interrupt_config(hperh, UART_IT_TFTH, DISABLE);
-		ald_uart_interrupt_config(hperh, UART_IT_TSEMPTY, ENABLE);
+		ald_uart_interrupt_config(hperh, UART_IT_TBC, ENABLE);
 	}
 
 	return OK;
@@ -220,12 +253,16 @@ static ald_status_t __uart_send_by_it(uart_handle_t *hperh)
   */
 static ald_status_t __uart_end_send_by_it(uart_handle_t *hperh)
 {
-	ald_uart_interrupt_config(hperh, UART_IT_TSEMPTY, DISABLE);
+	uint32_t cnt = 0xFFFFFF;
+
+	ald_uart_interrupt_config(hperh, UART_IT_TBC, DISABLE);
 	CLEAR_BIT(hperh->state, UART_STATE_TX_MASK);
 
+	while ((hperh->perh->STAT & UART_STATUS_TSBUSY) && (cnt--));
+	ald_uart_clear_flag_status(hperh, UART_IF_TBC);
 	if (hperh->tx_cplt_cbk)
 		hperh->tx_cplt_cbk(hperh);
-
+	
 	return OK;
 }
 
@@ -239,8 +276,13 @@ static ald_status_t __uart_recv_by_it(uart_handle_t *hperh)
 	if ((hperh->state & UART_STATE_RX_MASK) == 0x0)
 		return BUSY;
 
-	*hperh->rx_buf++ = (uint8_t)(hperh->perh->RXBUF & 0xFF);
-	hperh->rx_count++;
+	while (READ_BITS(hperh->perh->FCON, UART_FCON_RXFL_MSK, UART_FCON_RXFL_POSS)) {
+		*hperh->rx_buf++ = (uint8_t)(hperh->perh->RXBUF & 0xFF);
+		hperh->rx_count++;
+
+		if (hperh->rx_count >= hperh->rx_size)
+			break;
+	}
 
 	if (hperh->rx_count >= hperh->rx_size) {
 		ald_uart_interrupt_config(hperh, UART_IT_RFTH, DISABLE);
@@ -252,16 +294,12 @@ static ald_status_t __uart_recv_by_it(uart_handle_t *hperh)
 
 	return OK;
 }
-
-
 /**
   * @}
   */
-
 /** @defgroup UART_Public_Functions UART Public Functions
   * @{
   */
-
 /** @defgroup UART_Public_Functions_Group1 Initialization and Configuration functions
   * @brief    Initialization and Configuration functions
   *
@@ -349,7 +387,6 @@ void ald_uart_init(uart_handle_t *hperh)
 	}
 
 	MODIFY_REG(hperh->perh->MCON, UART_MCON_AFCEN_MSK, hperh->init.fctl << UART_MCON_AFCEN_POS);
-
 	hperh->perh->BRR = (ald_cmu_get_pclk1_clock() + (hperh->init.baud >> 1)) / hperh->init.baud;
 
 	if (hperh->init.mode == UART_MODE_LIN)
@@ -421,9 +458,6 @@ void ald_uart_scard_config(uart_handle_t *hperh, uart_scard_config_t *config)
 
 	return;
 }
-
-
-
 /**
   * @}
   */
@@ -508,12 +542,12 @@ ald_status_t ald_uart_send(uart_handle_t *hperh, uint8_t *buf, uint16_t size, ui
 			hperh->state = UART_STATE_READY;
 			return TIMEOUT;
 		}
-
+		while(hperh->perh->STAT & (0x1 << 17));
 		hperh->perh->TXBUF = (*buf++ & 0xFF);
 		hperh->tx_count++;
 	}
 
-	if (uart_wait_flag(hperh, UART_STATUS_TFEMPTY, SET, timeout) != OK) {
+	if (uart_wait_flag(hperh, UART_STATUS_TSBUSY, RESET, timeout) != OK) {
 		__UNLOCK(hperh);
 		hperh->state = UART_STATE_READY;
 		return TIMEOUT;
@@ -535,12 +569,16 @@ ald_status_t ald_uart_send(uart_handle_t *hperh, uint8_t *buf, uint16_t size, ui
   */
 ald_status_t ald_uart_recv(uart_handle_t *hperh, uint8_t *buf, uint16_t size, uint32_t timeout)
 {
+	uint32_t stat = 0;
+	uint32_t err  = 0;
+	uint32_t tick = 0;
+
 	assert_param(IS_UART_ALL(hperh->perh));
 
 	if ((hperh->state != UART_STATE_READY) && (hperh->state != UART_STATE_BUSY_TX))
 		return BUSY;
 
-	if ((buf == NULL) || (size == 0))
+	if ((buf == NULL) || (size == 0) || (timeout == 0))
 		return  ERROR;
 
 	__LOCK(hperh);
@@ -551,15 +589,47 @@ ald_status_t ald_uart_recv(uart_handle_t *hperh, uint8_t *buf, uint16_t size, ui
 	hperh->rx_count = 0;
 	SET_BIT(hperh->perh->FCON, UART_FCON_RFRST_MSK);
 
-	while (size-- > 0) {
-		if (uart_wait_flag(hperh, UART_STATUS_RFTH, SET, timeout) != OK) {
-			__UNLOCK(hperh);
-			hperh->state = UART_STATE_READY;
-			return TIMEOUT;
-		}
+	err = (UART_STATUS_PERR | UART_STATUS_FERR | UART_STATUS_RFOERR);
 
-		*buf++ = (uint8_t)(hperh->perh->RXBUF & 0xFF);
-		hperh->rx_count++;
+	while (size-- > 0) {
+		tick = ald_get_tick();
+
+		/* Waiting for flag */
+		while (1) {
+			stat = hperh->perh->STAT;
+			if (READ_BIT(stat, UART_STATUS_RFTH) != RESET)
+				break;
+
+			if (((ald_get_tick()) - tick) > timeout) {
+				__UNLOCK(hperh);
+				hperh->state = UART_STATE_READY;
+				return TIMEOUT;
+			}
+		}
+		if ((stat & err) == RESET) {
+			*buf++ = (uint8_t)(hperh->perh->RXBUF & 0xFF);
+			hperh->rx_count++;
+		}
+		else {
+			/* Handle parity error */
+			if ((READ_BIT(stat, UART_STATUS_PERR)) != RESET)
+				hperh->err_code |= UART_ERROR_PE;
+
+			/* Handle frame error */
+			if ((READ_BIT(stat, UART_STATUS_FERR)) != RESET)
+				hperh->err_code |= UART_ERROR_FE;
+
+			/* Handle rx overflow error */
+			if ((READ_BIT(stat, UART_STATUS_RFOERR)) != RESET) {
+				hperh->err_code |= UART_ERROR_ORE;
+				UART_FIFO_RX_RESET(hperh);
+			}
+
+			CLEAR_BIT(hperh->state, UART_STATE_RX_MASK);
+			__UNLOCK(hperh);
+
+			return ERROR;
+		}
 	}
 
 	CLEAR_BIT(hperh->state, UART_STATE_RX_MASK);
@@ -599,12 +669,12 @@ ald_status_t ald_uart_send_n_lock(uart_handle_t *hperh, uint8_t *buf, uint16_t s
 			hperh->state = UART_STATE_READY;
 			return TIMEOUT;
 		}
-
+		while(hperh->perh->STAT & (0x1 << 17));
 		hperh->perh->TXBUF = (*buf++ & 0xFF);
 		hperh->tx_count++;
 	}
 
-	if (uart_wait_flag(hperh, UART_STATUS_TFEMPTY, SET, timeout) != OK) {
+	if (uart_wait_flag(hperh, UART_STATUS_TSBUSY, RESET, timeout) != OK) {
 		hperh->state = UART_STATE_READY;
 		return TIMEOUT;
 	}
@@ -726,14 +796,14 @@ ald_status_t ald_uart_recv_by_it(uart_handle_t *hperh, uint8_t *buf, uint16_t si
   * @param  t_out: Timeout duration.
   * @retval Status, see @ref ald_status_t.
   */
-ald_status_t ald_uart_recv_frame_by_it(uart_handle_t *hperh, uint8_t *buf, uint16_t size, uint8_t t_out)
+ald_status_t ald_uart_recv_frame_by_it(uart_handle_t *hperh, uint8_t *buf, uint16_t size, uint32_t t_out)
 {
 	assert_param(IS_UART_ALL(hperh->perh));
 
 	if ((hperh->state != UART_STATE_READY) && (hperh->state != UART_STATE_BUSY_TX))
 		return BUSY;
 
-	if ((buf == NULL ) || (t_out == 0) || (size == 0))
+	if ((buf == NULL ) || (t_out == 0) || (t_out > 0xFFFFFF) || (size == 0))
 		return ERROR;
 
 	__LOCK(hperh);
@@ -880,7 +950,7 @@ ald_status_t ald_uart_recv_by_dma(uart_handle_t *hperh, uint8_t *buf, uint16_t s
 		hperh->hdmarx.config.msigsel = DMA_MSIGSEL_UART_RNR;
 	}
 
-	hperh->hdmatx.config.burst   = ENABLE;
+	hperh->hdmarx.config.burst   = ENABLE;
 	hperh->hdmarx.config.channel = channel;
 
 	if (hperh->init.mode == UART_MODE_RS485) {
@@ -897,9 +967,9 @@ ald_status_t ald_uart_recv_by_dma(uart_handle_t *hperh, uint8_t *buf, uint16_t s
 	else if (hperh->perh == UART3)
 		hperh->hdmarx.config.msel = DMA_MSEL_UART3;
 	else if (hperh->perh == UART4)
-		hperh->hdmatx.config.msel = DMA_MSEL_UART4;
+		hperh->hdmarx.config.msel = DMA_MSEL_UART4;
 	else if (hperh->perh == UART5)
-		hperh->hdmatx.config.msel = DMA_MSEL_UART5;
+		hperh->hdmarx.config.msel = DMA_MSEL_UART5;
 	else
 		;
 
@@ -962,27 +1032,35 @@ ald_status_t ald_uart_dma_stop(uart_handle_t *hperh)
   */
 void ald_uart_irq_handler(uart_handle_t *hperh)
 {
+	uint32_t stat = 0;
+
 	assert_param(IS_UART_ALL(hperh->perh));
 
+	stat = hperh->perh->STAT;
+
 	/* Handle parity error */
-	if (((ald_uart_get_status(hperh, UART_STATUS_PERR)) != RESET) && \
+	if (((READ_BIT(stat, UART_STATUS_PERR)) != RESET) && \
 		(ald_uart_get_state(hperh)) == UART_STATE_RX_MASK)
 		hperh->err_code |= UART_ERROR_PE;
 
 	/* Handle frame error */
-	if (((ald_uart_get_status(hperh, UART_STATUS_FERR)) != RESET) && \
+	if (((READ_BIT(stat, UART_STATUS_FERR)) != RESET) && \
 		(ald_uart_get_state(hperh)) == UART_STATE_RX_MASK)
 		hperh->err_code |= UART_ERROR_FE;
 
 	/* Handle rx overflow error */
-	if (((ald_uart_get_status(hperh, UART_STATUS_RFOERR)) != RESET) && \
-		(ald_uart_get_state(hperh)) == UART_STATE_RX_MASK)
+	if (((READ_BIT(stat, UART_STATUS_RFOERR)) != RESET) && \
+		(ald_uart_get_state(hperh)) == UART_STATE_RX_MASK) {
 		hperh->err_code |= UART_ERROR_ORE;
+		UART_FIFO_RX_RESET(hperh);
+	}
 
 	/* Handle tx overflow error */
-	if (((ald_uart_get_status(hperh, UART_STATUS_TFOERR)) != RESET) && \
-		(ald_uart_get_state(hperh)) == UART_STATE_TX_MASK)
+	if (((READ_BIT(stat, UART_STATUS_TFOERR)) != RESET) && \
+		(ald_uart_get_state(hperh)) == UART_STATE_TX_MASK) {
 		hperh->err_code |= UART_ERROR_ORE;
+		UART_FIFO_TX_RESET(hperh);
+	}
 
 	/* Receive */
 	if ((ald_uart_get_mask_flag_status(hperh, UART_IF_RFTH)) != RESET) {
@@ -1020,6 +1098,67 @@ void ald_uart_irq_handler(uart_handle_t *hperh)
 		if (hperh->error_cbk)
 			hperh->error_cbk(hperh);
 	}
+}
+
+/**
+  * @brief  This function handles UART interrupt request.
+  * @param  hperh: Pointer to a uart_handle_t structure.
+  * @retval None
+  */
+void ald_uart_irq_handler_fast(uart_handle_t *hperh)
+{
+	volatile uint32_t tmp = hperh->perh->IFM;
+
+	/* Transmit */
+	if (tmp & 0x8000) {
+		hperh->perh->ICR   = 0x8000;
+		while(hperh->perh->STAT & (0x1 << 17));
+		hperh->perh->TXBUF = *hperh->tx_buf++;
+		++hperh->tx_count;
+
+		if (hperh->tx_count >= hperh->tx_size) {
+			hperh->perh->IDR = 0x8000;
+			CLEAR_BIT(hperh->state, UART_STATE_TX_MASK);
+
+			if (hperh->tx_cplt_cbk)
+				hperh->tx_cplt_cbk(hperh);
+		}
+	}
+	/* End Transmit */
+	if (tmp & 0x10000) {
+		hperh->perh->ICR = 0x10000;
+		hperh->perh->IDR = 0x10000;
+		CLEAR_BIT(hperh->state, UART_STATE_TX_MASK);
+
+		if (hperh->tx_cplt_cbk)
+			hperh->tx_cplt_cbk(hperh);
+	}
+
+	/* Receive*/
+	if (tmp & 0x200) {
+		hperh->perh->ICR = 0x200;
+		*hperh->rx_buf++ = (uint8_t)(hperh->perh->RXBUF & 0xFF);
+		++hperh->rx_count;
+
+		if (hperh->rx_count >= hperh->rx_size) {
+			hperh->perh->IDR = 0x200;
+			CLEAR_BIT(hperh->state, UART_STATE_RX_MASK);
+
+			if (hperh->rx_cplt_cbk)
+				hperh->rx_cplt_cbk(hperh);
+		}
+	}
+	/* Receive frame */
+	if (tmp & 0x10) {
+		hperh->perh->ICR = 0x10;
+		hperh->perh->IDR = 0x10;
+		CLEAR_BIT(hperh->state, UART_STATE_RX_MASK);
+
+		if (hperh->rx_cplt_cbk)
+			hperh->rx_cplt_cbk(hperh);
+	}
+
+	return;
 }
 /**
   * @}
@@ -1112,17 +1251,15 @@ void ald_uart_dma_req_config(uart_handle_t *hperh, uart_dma_req_t req, type_func
   * @brief  Configure transmit fifo parameters.
   * @param  hperh: Pointer to a uart_handle_t structure.
   * @param  config: Transmit fifo trigger level.
-  * @param  level: Transmit fifo level.
   * @retval None
   */
-void ald_uart_tx_fifo_config(uart_handle_t *hperh, uart_txfifo_t config, uint8_t level)
+void ald_uart_tx_fifo_config(uart_handle_t *hperh, uart_txfifo_t config)
 {
 	assert_param(IS_UART_ALL(hperh->perh));
 	assert_param(IS_UART_TXFIFO_TYPE(config));
 
 	SET_BIT(hperh->perh->FCON, UART_FCON_TFRST_MSK);
 	MODIFY_REG(hperh->perh->FCON, UART_FCON_TXTH_MSK, config << UART_FCON_TXTH_POSS);
-	MODIFY_REG(hperh->perh->FCON, UART_FCON_TXFL_MSK, config << UART_FCON_TXFL_POSS);
 
 	return;
 }
@@ -1131,17 +1268,15 @@ void ald_uart_tx_fifo_config(uart_handle_t *hperh, uart_txfifo_t config, uint8_t
   * @brief  Configure receive fifo parameters.
   * @param  hperh: Pointer to a uart_handle_t structure.
   * @param  config: Receive fifo trigger level.
-  * @param  level: Receive fifo level.
   * @retval None
   */
-void ald_uart_rx_fifo_config(uart_handle_t *hperh, uart_rxfifo_t config, uint8_t level)
+void ald_uart_rx_fifo_config(uart_handle_t *hperh, uart_rxfifo_t config)
 {
 	assert_param(IS_UART_ALL(hperh->perh));
 	assert_param(IS_UART_RXFIFO_TYPE(config));
 
 	SET_BIT(hperh->perh->FCON, UART_FCON_RFRST_MSK);
 	MODIFY_REG(hperh->perh->FCON, UART_FCON_RXTH_MSK, config << UART_FCON_RXTH_POSS);
-	MODIFY_REG(hperh->perh->FCON, UART_FCON_RXFL_MSK, level << UART_FCON_RXFL_POSS);
 
 	return;
 }
@@ -1176,7 +1311,7 @@ void ald_uart_lin_send_break(uart_handle_t *hperh)
 	assert_param(IS_UART_ALL(hperh->perh));
 
 	SET_BIT(hperh->perh->LIN, UART_LIN_LINBKREQ_MSK);
-
+	while(hperh->perh->STAT & (0x1 << 17));
 	hperh->perh->TXBUF = (0x55);
 
 	return;
@@ -1240,7 +1375,7 @@ ald_status_t ald_uart_rs485_send_addr(uart_handle_t *hperh, uint16_t addr, uint3
 		hperh->state = UART_STATE_READY;
 		return TIMEOUT;
 	}
-
+	while(hperh->perh->STAT & (0x1 << 17));
 	WRITE_REG(hperh->perh->TXBUF, (addr | 0x100));
 
 	if (uart_wait_flag(hperh, UART_STATUS_TFEMPTY, SET, timeout) != OK) {
@@ -1396,16 +1531,13 @@ uint32_t ald_uart_get_error(uart_handle_t *hperh)
 /**
   * @}
   */
-
 /**
   * @}
   */
 #endif /* ALD_UART */
-
 /**
   * @}
   */
-
 /**
   * @}
   */

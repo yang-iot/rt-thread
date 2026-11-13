@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006-2020, RT-Thread Development Team
+ * Copyright (c) 2006-2021, RT-Thread Development Team
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -9,8 +9,6 @@
  */
 
 #include <rtthread.h>
-#include <rtdevice.h>
-#include <board.h>
 
 int main(int argc, char** argv)
 {

@@ -11,6 +11,20 @@
   *
   * Copyright (C) Shanghai Eastsoft Microelectronics Co. Ltd. All rights reserved.
   *
+  * SPDX-License-Identifier: Apache-2.0
+  *
+  * Licensed under the Apache License, Version 2.0 (the License); you may
+  * not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  *
   *********************************************************************************
   */
 
@@ -45,16 +59,15 @@
 
 /**
   * @brief  Square root operation.
-  * @param  data: The data;
+  * @param  data: The radicand
   * @retval The value of square root.
   */
 uint32_t ald_calc_sqrt(uint32_t data)
 {
-    WRITE_REG(CALC->RDCND, data);
+	WRITE_REG(CALC->RDCND, data);
+	while (READ_BIT(CALC->SQRTSR, CALC_SQRTSR_BUSY_MSK));
 
-    while (READ_BIT(CALC->SQRTSR, CALC_SQRTSR_BUSY_MSK));
-
-    return READ_REG(CALC->SQRTRES);
+	return READ_REG(CALC->SQRTRES);
 }
 
 /**
@@ -66,15 +79,15 @@ uint32_t ald_calc_sqrt(uint32_t data)
   */
 uint32_t ald_calc_div(uint32_t dividend, uint32_t divisor, uint32_t *remainder)
 {
-    CLEAR_BIT(CALC->DIVCSR, CALC_DIVCSR_SIGN_MSK);
-    SET_BIT(CALC->DIVCSR, CALC_DIVCSR_TRM_MSK);
-    WRITE_REG(CALC->DIVDR, dividend);
-    WRITE_REG(CALC->DIVSR, divisor);
+	CLEAR_BIT(CALC->DIVCSR, CALC_DIVCSR_SIGN_MSK);
+	SET_BIT(CALC->DIVCSR, CALC_DIVCSR_TRM_MSK);
+	WRITE_REG(CALC->DIVDR, dividend);
+	WRITE_REG(CALC->DIVSR, divisor);
 
-    while (READ_BIT(CALC->DIVCSR, CALC_DIVCSR_BUSY_MSK));
+	while (READ_BIT(CALC->DIVCSR, CALC_DIVCSR_BUSY_MSK));
 
-    *remainder = READ_REG(CALC->DIVRR);
-    return READ_REG(CALC->DIVQR);
+	*remainder = READ_REG(CALC->DIVRR);
+	return READ_REG(CALC->DIVQR);
 }
 
 /**
@@ -86,15 +99,15 @@ uint32_t ald_calc_div(uint32_t dividend, uint32_t divisor, uint32_t *remainder)
   */
 int32_t ald_calc_div_sign(int32_t dividend, int32_t divisor, int32_t *remainder)
 {
-    SET_BIT(CALC->DIVCSR, CALC_DIVCSR_SIGN_MSK);
-    SET_BIT(CALC->DIVCSR, CALC_DIVCSR_TRM_MSK);
-    WRITE_REG(CALC->DIVDR, dividend);
-    WRITE_REG(CALC->DIVSR, divisor);
+	SET_BIT(CALC->DIVCSR, CALC_DIVCSR_SIGN_MSK);
+	SET_BIT(CALC->DIVCSR, CALC_DIVCSR_TRM_MSK);
+	WRITE_REG(CALC->DIVDR, dividend);
+	WRITE_REG(CALC->DIVSR, divisor);
 
-    while (READ_BIT(CALC->DIVCSR, CALC_DIVCSR_BUSY_MSK));
+	while (READ_BIT(CALC->DIVCSR, CALC_DIVCSR_BUSY_MSK));
 
-    *remainder = READ_REG(CALC->DIVRR);
-    return READ_REG(CALC->DIVQR);
+	*remainder = READ_REG(CALC->DIVRR);
+	return READ_REG(CALC->DIVQR);
 }
 
 /**
@@ -103,10 +116,10 @@ int32_t ald_calc_div_sign(int32_t dividend, int32_t divisor, int32_t *remainder)
   */
 flag_status_t ald_calc_get_dz_status(void)
 {
-    if (READ_BIT(CALC->DIVCSR, CALC_DIVCSR_DZ_MSK))
-        return SET;
+	if (READ_BIT(CALC->DIVCSR, CALC_DIVCSR_DZ_MSK))
+		return SET;
 
-    return RESET;
+	return RESET;
 }
 
 /**

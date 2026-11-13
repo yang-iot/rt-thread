@@ -8,14 +8,29 @@
   * @date    26 Jun 2019
   * @author  AE Team
   * @note
+  *          Change Logs:
+  *          Date            Author          Notes
+  *          26 Jun 2019     AE Team         The first version
   *
   * Copyright (C) Shanghai Eastsoft Microelectronics Co. Ltd. All rights reserved.
   *
-  *********************************************************************************
+  * SPDX-License-Identifier: Apache-2.0
+  *
+  * Licensed under the Apache License, Version 2.0 (the License); you may
+  * not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  **********************************************************************************
   */
 
-#include "ald_tsense.h"
-#include "ald_bkpc.h"
+#include "ald_conf.h"
 
 
 /** @addtogroup ES32FXXX_ALD
@@ -77,8 +92,8 @@ void ald_tsense_init(void)
 	MODIFY_REG(TSENSE->CR, TSENSE_CR_TOM_MSK, 0x3 << TSENSE_CR_TOM_POSS);
 	MODIFY_REG(TSENSE->PSR, TSENSE_PSR_PRS_MSK, 0x1 << TSENSE_PSR_PRS_POSS);
 
-	TSENSE->HTGR = 0x1FD0C;
-	TSENSE->LTGR = 0x21BC1;
+	TSENSE->HTGR = 0x8564F;
+	TSENSE->LTGR = 0x87037;
 	tempt        = *(volatile uint16_t *)0x80348;
 	temptinv     = *(volatile uint16_t *)0x8034A;
 	tscic        = *(volatile uint32_t *)0x80350;
@@ -90,7 +105,7 @@ void ald_tsense_init(void)
 	}
 	else {
 		TSENSE->TBDR    = 0x1E00;
-		TSENSE->TCALBDR = 0x1FE70;
+		TSENSE->TCALBDR = 0x1F849;
 	}
 
 	TSENSE_LOCK();
@@ -160,15 +175,23 @@ ald_status_t ald_tsense_get_value(uint16_t *tsense)
 
 	while ((!(READ_BIT(TSENSE->IF, TSENSE_IF_TSENSE_MSK))) && (tmp++ < 1000000));
 
-	if (tmp >= 1000000)
+	if (tmp >= 1000000) {
+		TSENSE_UNLOCK();
+		CLEAR_BIT(TSENSE->CR, TSENSE_CR_EN_MSK);
+		TSENSE_LOCK();
 		return TIMEOUT;
+	}
 
 	TSENSE_UNLOCK();
 	SET_BIT(TSENSE->IFCR, TSENSE_IFCR_TSENSE_MSK);
 	TSENSE_LOCK();
 
-	if (READ_BIT(TSENSE->DR, TSENSE_DR_ERR_MSK))
+	if (READ_BIT(TSENSE->DR, TSENSE_DR_ERR_MSK)) {
+		TSENSE_UNLOCK();
+		CLEAR_BIT(TSENSE->CR, TSENSE_CR_EN_MSK);
+		TSENSE_LOCK();
 		return ERROR;
+	}
 
 	*tsense = READ_BITS(TSENSE->DR, TSENSE_DR_DATA_MSK, TSENSE_DR_DATA_POSS);
 
@@ -207,8 +230,12 @@ void ald_tsense_irq_handler(void)
 	SET_BIT(TSENSE->IFCR, TSENSE_IFCR_TSENSE_MSK);
 	TSENSE_LOCK();
 
-	if (__tsense_cbk == NULL)
+	if (__tsense_cbk == NULL) {
+		TSENSE_UNLOCK();
+		CLEAR_BIT(TSENSE->CR, TSENSE_CR_EN_MSK);
+		TSENSE_LOCK();
 		return;
+	}
 
 	if (READ_BIT(TSENSE->DR, TSENSE_DR_ERR_MSK)) {
 		TSENSE_UNLOCK();

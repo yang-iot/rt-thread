@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006-2018, RT-Thread Development Team
+ * Copyright (c) 2006-2024 RT-Thread Development Team
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -9,12 +9,15 @@
  * 2019-04-27     misonyo      update to cortex-m7 series
  */
 
+#include <rtthread.h>
 #include <rthw.h>
 #include <rtdef.h>
 #include <board.h>
 
-/* The L1-caches on all Cortex®-M7s are divided into lines of 32 bytes. */
+/* The L1-caches on all CortexÂ®-M7s are divided into lines of 32 bytes. */
 #define L1CACHE_LINESIZE_BYTE       (32)
+
+#ifdef RT_USING_CACHE
 
 void rt_hw_cpu_icache_enable(void)
 {
@@ -33,7 +36,7 @@ rt_base_t rt_hw_cpu_icache_status(void)
 
 void rt_hw_cpu_icache_ops(int ops, void* addr, int size)
 {
-    rt_uint32_t address = (rt_uint32_t)addr & (rt_uint32_t) ~(L1CACHE_LINESIZE_BYTE - 1);
+    rt_uint32_t address = RT_ALIGN_DOWN((rt_uint32_t)addr, L1CACHE_LINESIZE_BYTE);
     rt_int32_t size_byte = size + address - (rt_uint32_t)addr;
     rt_uint32_t linesize = 32U;
     if (ops & RT_HW_CACHE_INVALIDATE)
@@ -67,23 +70,27 @@ rt_base_t rt_hw_cpu_dcache_status(void)
 
 void rt_hw_cpu_dcache_ops(int ops, void* addr, int size)
 {
-    rt_uint32_t startAddr = (rt_uint32_t)addr & (rt_uint32_t)~(L1CACHE_LINESIZE_BYTE - 1);
+    rt_uint32_t startAddr = RT_ALIGN_DOWN((rt_uint32_t)addr, L1CACHE_LINESIZE_BYTE);
     rt_uint32_t size_byte = size + (rt_uint32_t)addr - startAddr;
+    rt_uint32_t clean_invalid = RT_HW_CACHE_FLUSH | RT_HW_CACHE_INVALIDATE;
 
-    if (ops & (RT_HW_CACHE_FLUSH | RT_HW_CACHE_INVALIDATE))
+    if ((ops & clean_invalid) == clean_invalid)
     {
-        SCB_CleanInvalidateDCache_by_Addr((uint32_t *)startAddr, size_byte);
+        SCB_CleanInvalidateDCache_by_Addr((void *)startAddr, size_byte);
     }
     else if (ops & RT_HW_CACHE_FLUSH)
     {
-        SCB_CleanDCache_by_Addr((uint32_t *)startAddr, size_byte);
+        SCB_CleanDCache_by_Addr((void *)startAddr, size_byte);
     }
     else if (ops & RT_HW_CACHE_INVALIDATE)
     {
-        SCB_InvalidateDCache_by_Addr((uint32_t *)startAddr, size_byte);
+        SCB_InvalidateDCache_by_Addr((void *)startAddr, size_byte);
     }
     else
     {
         RT_ASSERT(0);
     }
 }
+
+#endif /* RT_USING_CACHE */
+

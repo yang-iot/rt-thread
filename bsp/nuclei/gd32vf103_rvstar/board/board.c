@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006-2020, RT-Thread Development Team
+ * Copyright (c) 2006-2023, RT-Thread Development Team
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -12,7 +12,9 @@
 #include <rtthread.h>
 #include <rtdevice.h>
 #include "board.h"
-#include "cpuport.h"
+
+#define SYSTICK_TICK_CONST                      (SOC_TIMER_FREQ / RT_TICK_PER_SECOND)
+#define RT_KERNEL_INTERRUPT_LEVEL               1
 
 #ifdef RT_USING_SERIAL
     #include <drv_usart.h>
@@ -32,10 +34,10 @@ extern void *_heap_end;
  */
 extern void _init(void);
 
-/* 
+/*
  * - Check MCU pin assignment here https://doc.nucleisys.com/nuclei_board_labs/hw/hw.html
  * - If you changed menuconfig to use different peripherals such as SPI, ADC, GPIO,
- *   HWTIMER, I2C, PWM, UART, WDT, RTC, please add or change related pinmux configuration
+ *   CLOCK_TIMER, I2C, PWM, UART, WDT, RTC, please add or change related pinmux configuration
  *   code in functions(rt_hw_*_drvinit) below
  */
 
@@ -60,7 +62,7 @@ void rt_hw_gpio_drvinit(void)
     rcu_periph_clock_enable(RCU_AF);
 }
 
-void rt_hw_hwtimer_drvinit(void)
+void rt_hw_clock_timer_drvinit(void)
 {
 
 }
@@ -114,12 +116,51 @@ void rt_hw_drivers_init(void)
 #ifdef BSP_USING_RTC
     rt_hw_rtc_drvinit();
 #endif
-#ifdef BSP_USING_HWTIMER
-    rt_hw_hwtimer_drvinit();
+#ifdef BSP_USING_CLOCK_TIMER
+    rt_hw_clock_timer_drvinit();
 #endif
 #ifdef BSP_USING_PWM
     rt_hw_pwm_drvinit();
 #endif
+}
+
+rt_weak void rt_hw_ticksetup(void)
+{
+    uint64_t ticks = SYSTICK_TICK_CONST;
+
+    /* Make SWI and SysTick the lowest priority interrupts. */
+    /* Stop and clear the SysTimer. SysTimer as Non-Vector Interrupt */
+    SysTick_Config(ticks);
+    ECLIC_DisableIRQ(SysTimer_IRQn);
+    ECLIC_SetLevelIRQ(SysTimer_IRQn, RT_KERNEL_INTERRUPT_LEVEL);
+    ECLIC_SetShvIRQ(SysTimer_IRQn, ECLIC_NON_VECTOR_INTERRUPT);
+    ECLIC_EnableIRQ(SysTimer_IRQn);
+
+    /* Set SWI interrupt level to lowest level/priority, SysTimerSW as Vector Interrupt */
+    ECLIC_SetShvIRQ(SysTimerSW_IRQn, ECLIC_VECTOR_INTERRUPT);
+    ECLIC_SetLevelIRQ(SysTimerSW_IRQn, RT_KERNEL_INTERRUPT_LEVEL);
+    ECLIC_EnableIRQ(SysTimerSW_IRQn);
+}
+
+#define SysTick_Handler     eclic_mtip_handler
+
+/**
+ * @brief This is the timer interrupt service routine.
+ *
+ */
+void SysTick_Handler(void)
+{
+    /* Reload systimer */
+    SysTick_Reload(SYSTICK_TICK_CONST);
+
+    /* enter interrupt */
+    rt_interrupt_enter();
+
+    /* tick increase */
+    rt_tick_increase();
+
+    /* leave interrupt */
+    rt_interrupt_leave();
 }
 
 /**
@@ -146,7 +187,7 @@ void rt_hw_board_init(void)
 #endif
 
     /* Set the shell console output device */
-#ifdef RT_USING_CONSOLE
+#if defined(RT_USING_CONSOLE) && defined(RT_USING_DEVICE)
     rt_console_set_device(RT_CONSOLE_DEVICE_NAME);
 #endif
 
@@ -158,4 +199,3 @@ void rt_hw_board_init(void)
 }
 
 /******************** end of file *******************/
-

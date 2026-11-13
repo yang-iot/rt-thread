@@ -186,6 +186,10 @@ rt_hw_context_switch_to:
     ; enable interrupts at processor level
     CPSIE   I
 
+    ; ensure PendSV exception taken place before subsequent operation
+    DSB
+    ISB
+
     ; never reach here!
 
 ; compatible with old version
@@ -198,7 +202,13 @@ rt_hw_interrupt_thread_switch:
 HardFault_Handler:
 
     ; get current context
-    MRS     r0, psp                 ; get fault thread stack pointer
+    MRS     r0, msp                 ; get fault context from handler.
+    MOV     r1, lr                  ; Cortex-M0 has no Thumb-2 TST immediate
+    MOVS    r2, #0x04
+    TST     r1, r2                  ; if(!EXC_RETURN[2])
+    BEQ     _get_sp_done
+    MRS     r0, psp                 ; get fault context from thread.
+_get_sp_done
     PUSH    {lr}
     BL      rt_hw_hard_fault_exception
     POP     {pc}

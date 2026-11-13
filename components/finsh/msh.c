@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006-2018, RT-Thread Development Team
+ * Copyright (c) 2006-2022, RT-Thread Development Team
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -10,115 +10,145 @@
  * 2017-07-19     Aubr.Cool    limit argc to RT_FINSH_ARG_MAX
  */
 #include <rtthread.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 
-#ifdef FINSH_USING_MSH
-
-#include "msh.h"
-#include <finsh.h>
-#include <shell.h>
-
-#ifdef RT_USING_DFS
-#include <dfs_posix.h>
-#endif
-
-#ifdef RT_USING_MODULE
-#include <dlmodule.h>
-#endif
+#ifdef RT_USING_FINSH
 
 #ifndef FINSH_ARG_MAX
 #define FINSH_ARG_MAX    8
-#endif
+#endif /* FINSH_ARG_MAX */
+
+#include "msh.h"
+#include "shell.h"
+#ifdef DFS_USING_POSIX
+#include <dfs_file.h>
+#include <unistd.h>
+#include <fcntl.h>
+#endif /* DFS_USING_POSIX */
+#ifdef RT_USING_MODULE
+#include <dlmodule.h>
+#endif /* RT_USING_MODULE */
 
 typedef int (*cmd_function_t)(int argc, char **argv);
 
-#ifdef FINSH_USING_MSH
-#ifdef FINSH_USING_MSH_ONLY
-rt_bool_t msh_is_used(void)
-{
-    return RT_TRUE;
-}
-#else
-#ifdef FINSH_USING_MSH_DEFAULT
-static rt_bool_t __msh_state = RT_TRUE;
-#else
-static rt_bool_t __msh_state = RT_FALSE;
-#endif
-rt_bool_t msh_is_used(void)
-{
-    return __msh_state;
-}
-
-static int msh_exit(int argc, char **argv)
-{
-    /* return to finsh shell mode */
-    __msh_state = RT_FALSE;
-    return 0;
-}
-FINSH_FUNCTION_EXPORT_ALIAS(msh_exit, __cmd_exit, return to RT-Thread shell mode.);
-
-static int msh_enter(void)
-{
-    /* enter module shell mode */
-    __msh_state = RT_TRUE;
-    return 0;
-}
-FINSH_FUNCTION_EXPORT_ALIAS(msh_enter, msh, use module shell);
-#endif
-
-int msh_help(int argc, char **argv)
+static int msh_help(int argc, char **argv)
 {
     rt_kprintf("RT-Thread shell commands:\n");
     {
         struct finsh_syscall *index;
-
+#if defined(FINSH_USING_SYMTAB)
         for (index = _syscall_table_begin;
                 index < _syscall_table_end;
                 FINSH_NEXT_SYSCALL(index))
         {
-            if (strncmp(index->name, "__cmd_", 6) != 0) continue;
-#if defined(FINSH_USING_DESCRIPTION) && defined(FINSH_USING_SYMTAB)
-            rt_kprintf("%-16s - %s\n", &index->name[6], index->desc);
+#if defined(FINSH_USING_DESCRIPTION)
+            rt_kprintf("%-16s - %s\n", index->name, index->desc);
 #else
-            rt_kprintf("%s ", &index->name[6]);
-#endif
+            rt_kprintf("%s ", index->name);
+#endif  /* FINSH_USING_DESCRIPTION */
         }
+#endif  /* FINSH_USING_SYMTAB */
     }
     rt_kprintf("\n");
 
     return 0;
 }
-FINSH_FUNCTION_EXPORT_ALIAS(msh_help, __cmd_help, RT-Thread shell help.);
+MSH_CMD_EXPORT_ALIAS(msh_help, help, RT-Thread shell help);
 
-int cmd_ps(int argc, char **argv)
+#ifdef MSH_USING_BUILT_IN_COMMANDS
+static int cmd_ps(int argc, char **argv)
 {
     extern long list_thread(void);
     extern int list_module(void);
 
 #ifdef RT_USING_MODULE
-    if ((argc == 2) && (strcmp(argv[1], "-m") == 0))
+    if ((argc == 2) && (rt_strcmp(argv[1], "-m") == 0))
         list_module();
     else
 #endif
-        list_thread();
+    list_thread();
     return 0;
 }
-FINSH_FUNCTION_EXPORT_ALIAS(cmd_ps, __cmd_ps, List threads in the system.);
+MSH_CMD_EXPORT_ALIAS(cmd_ps, ps, List threads in the system);
 
 #ifdef RT_USING_HEAP
-int cmd_free(int argc, char **argv)
+static int cmd_free(int argc, char **argv)
 {
-    extern void list_mem(void);
-    extern void list_memheap(void);
-
 #ifdef RT_USING_MEMHEAP_AS_HEAP
+    extern void list_memheap(void);
     list_memheap();
 #else
-    list_mem();
+    rt_size_t total = 0, used = 0, max_used = 0;
+
+    rt_memory_info(&total, &used, &max_used);
+    rt_kprintf("total    : %d\n", total);
+    rt_kprintf("used     : %d\n", used);
+    rt_kprintf("maximum  : %d\n", max_used);
+    rt_kprintf("available: %d\n", total - used);
 #endif
     return 0;
 }
-FINSH_FUNCTION_EXPORT_ALIAS(cmd_free, __cmd_free, Show the memory usage in the system.);
-#endif
+MSH_CMD_EXPORT_ALIAS(cmd_free, free, Show the memory usage in the system);
+#endif /* RT_USING_HEAP */
+
+#if RT_CPUS_NR > 1
+static int cmd_bind(int argc, char **argv)
+{
+    rt_err_t result;
+    rt_ubase_t thread_id;
+    rt_ubase_t core_id;
+    rt_thread_t thread;
+    char *endptr;
+
+    if (argc != 3)
+    {
+        rt_kprintf("Usage: bind <thread_id> <core_id>\n");
+        return 0;
+    }
+
+    /* Parse thread_id */
+    thread_id = (rt_ubase_t)strtoul(argv[1], &endptr, 0);
+    if (*endptr != '\0')
+    {
+        rt_kprintf("Error: Invalid thread ID '%s'\n", argv[1]);
+        return 0;
+    }
+
+    /* Parse core_id */
+    core_id = (rt_uint8_t)strtoul(argv[2], &endptr, 0);
+    if (*endptr != '\0')
+    {
+        rt_kprintf("Error: Invalid core ID '%s'\n", argv[2]);
+        return 0;
+    }
+
+    thread = (rt_thread_t)thread_id;
+
+    if (rt_object_get_type(&thread->parent) != RT_Object_Class_Thread)
+    {
+        rt_kprintf("Error: Invalid thread ID %#lx\n", thread_id);
+        return 0;
+    }
+
+    result = rt_thread_control(thread, RT_THREAD_CTRL_BIND_CPU, (void *)core_id);
+    if (result == RT_EOK)
+    {
+        rt_kprintf("Thread 0x%lx bound to core %d successfully\n",
+            thread_id, core_id);
+    }
+    else
+    {
+        rt_kprintf("Failed to bind thread 0x%lx to core %d\n",
+            thread_id, core_id);
+    }
+    return 0;
+}
+MSH_CMD_EXPORT_ALIAS(cmd_bind, bind, Binding thread to core);
+#endif /* RT_CPUS_NR > 1 */
+
+#endif /* MSH_USING_BUILT_IN_COMMANDS */
 
 static int msh_split(char *cmd, rt_size_t length, char *argv[FINSH_ARG_MAX])
 {
@@ -128,7 +158,8 @@ static int msh_split(char *cmd, rt_size_t length, char *argv[FINSH_ARG_MAX])
     rt_size_t i;
 
     ptr = cmd;
-    position = 0; argc = 0;
+    position = 0;
+    argc = 0;
 
     while (position < length)
     {
@@ -136,13 +167,14 @@ static int msh_split(char *cmd, rt_size_t length, char *argv[FINSH_ARG_MAX])
         while ((*ptr == ' ' || *ptr == '\t') && position < length)
         {
             *ptr = '\0';
-            ptr ++; position ++;
+            ptr ++;
+            position ++;
         }
 
-        if(argc >= FINSH_ARG_MAX)
+        if (argc >= FINSH_ARG_MAX)
         {
             rt_kprintf("Too many args ! We only Use:\n");
-            for(i = 0; i < argc; i++)
+            for (i = 0; i < argc; i++)
             {
                 rt_kprintf("%s ", argv[i]);
             }
@@ -155,8 +187,10 @@ static int msh_split(char *cmd, rt_size_t length, char *argv[FINSH_ARG_MAX])
         /* handle string */
         if (*ptr == '"')
         {
-            ptr ++; position ++;
-            argv[argc] = ptr; argc ++;
+            ptr ++;
+            position ++;
+            argv[argc] = ptr;
+            argc ++;
 
             /* skip this string */
             while (*ptr != '"' && position < length)
@@ -165,15 +199,19 @@ static int msh_split(char *cmd, rt_size_t length, char *argv[FINSH_ARG_MAX])
                 {
                     if (*(ptr + 1) == '"')
                     {
-                        ptr ++; position ++;
+                        ptr ++;
+                        position ++;
                     }
                 }
-                ptr ++; position ++;
+                ptr ++;
+                position ++;
             }
             if (position >= length) break;
 
             /* skip '"' */
-            *ptr = '\0'; ptr ++; position ++;
+            *ptr = '\0';
+            ptr ++;
+            position ++;
         }
         else
         {
@@ -181,7 +219,8 @@ static int msh_split(char *cmd, rt_size_t length, char *argv[FINSH_ARG_MAX])
             argc ++;
             while ((*ptr != ' ' && *ptr != '\t') && position < length)
             {
-                ptr ++; position ++;
+                ptr ++;
+                position ++;
             }
             if (position >= length) break;
         }
@@ -194,25 +233,23 @@ static cmd_function_t msh_get_cmd(char *cmd, int size)
 {
     struct finsh_syscall *index;
     cmd_function_t cmd_func = RT_NULL;
-
+#if defined(FINSH_USING_SYMTAB)
     for (index = _syscall_table_begin;
             index < _syscall_table_end;
             FINSH_NEXT_SYSCALL(index))
     {
-        if (strncmp(index->name, "__cmd_", 6) != 0) continue;
-
-        if (strncmp(&index->name[6], cmd, size) == 0 &&
-                index->name[6 + size] == '\0')
+        if (rt_strncmp(index->name, cmd, size) == 0 &&
+                index->name[size] == '\0')
         {
             cmd_func = (cmd_function_t)index->func;
             break;
         }
     }
-
+#endif /* FINSH_USING_SYMTAB */
     return cmd_func;
 }
 
-#if defined(RT_USING_MODULE) && defined(RT_USING_DFS)
+#if defined(RT_USING_MODULE) && defined(DFS_USING_POSIX)
 /* Return 0 on module executed. Other value indicate error.
  */
 int msh_exec_module(const char *cmd_line, int size)
@@ -225,22 +262,22 @@ int msh_exec_module(const char *cmd_line, int size)
     if (size == 0)
         return -RT_ERROR;
     /* get the length of command0 */
-    while ((cmd_line[cmd_length] != ' ' && cmd_line[cmd_length] != '\t') && cmd_length < size)
+    while (cmd_length < size && cmd_line[cmd_length] != ' ' && cmd_line[cmd_length] != '\t')
         cmd_length ++;
 
     /* get name length */
     length = cmd_length + 32;
 
     /* allocate program name memory */
-    pg_name = (char *) rt_malloc(length);
+    pg_name = (char *) rt_malloc(length + 3);
     if (pg_name == RT_NULL)
         return -RT_ENOMEM;
 
     /* copy command0 */
-    memcpy(pg_name, cmd_line, cmd_length);
+    rt_memcpy(pg_name, cmd_line, cmd_length);
     pg_name[cmd_length] = '\0';
 
-    if (strstr(pg_name, ".mo") != RT_NULL || strstr(pg_name, ".MO") != RT_NULL)
+    if (rt_strstr(pg_name, ".mo") != RT_NULL || rt_strstr(pg_name, ".MO") != RT_NULL)
     {
         /* try to open program */
         fd = open(pg_name, O_RDONLY, 0);
@@ -283,21 +320,6 @@ int msh_exec_module(const char *cmd_line, int size)
     rt_free(pg_name);
     return ret;
 }
-
-int system(const char *command)
-{
-    int ret = -RT_ENOMEM;
-    char *cmd = rt_strdup(command);
-
-    if (cmd)
-    {
-        ret = msh_exec(cmd, rt_strlen(cmd));
-        rt_free(cmd);
-    }
-
-    return ret;
-}
-RTM_EXPORT(system);
 #endif
 
 static int _msh_exec_cmd(char *cmd, rt_size_t length, int *retp)
@@ -311,7 +333,7 @@ static int _msh_exec_cmd(char *cmd, rt_size_t length, int *retp)
     RT_ASSERT(retp);
 
     /* find the size of first command */
-    while ((cmd[cmd0_size] != ' ' && cmd[cmd0_size] != '\t') && cmd0_size < length)
+    while (cmd0_size < length && (cmd[cmd0_size] != ' ' && cmd[cmd0_size] != '\t'))
         cmd0_size ++;
     if (cmd0_size == 0)
         return -RT_ERROR;
@@ -321,7 +343,7 @@ static int _msh_exec_cmd(char *cmd, rt_size_t length, int *retp)
         return -RT_ERROR;
 
     /* split arguments */
-    memset(argv, 0x00, sizeof(argv));
+    rt_memset(argv, 0x00, sizeof(argv));
     argc = msh_split(cmd, length, argv);
     if (argc == 0)
         return -RT_ERROR;
@@ -331,19 +353,141 @@ static int _msh_exec_cmd(char *cmd, rt_size_t length, int *retp)
     return 0;
 }
 
-#if defined(RT_USING_LWP) && defined(RT_USING_DFS)
-static int _msh_exec_lwp(char *cmd, rt_size_t length)
+#if defined(RT_USING_SMART) && defined(DFS_USING_POSIX)
+#include <lwp.h>
+/* check whether a file of the given path exits */
+static rt_bool_t _msh_lwp_cmd_exists(const char *path)
+{
+    int fd = -1;
+    fd = open(path, O_RDONLY, 0);
+    if (fd < 0)
+    {
+        return RT_FALSE;
+    }
+    close(fd);
+    return RT_TRUE;
+}
+
+/*
+ * search for the file named "pg_name" or "pg_name.elf" at the given directory,
+ * and return its path. return NULL when not found.
+ */
+static char *_msh_exec_search_path(const char *path, const char *pg_name)
+{
+    char *path_buffer = RT_NULL;
+    ssize_t pg_len = rt_strlen(pg_name);
+    ssize_t base_len = 0;
+
+    if (path)
+    {
+        base_len = rt_strlen(path);
+    }
+
+    path_buffer = rt_malloc(base_len + pg_len + 6);
+    if (path_buffer == RT_NULL)
+    {
+        return RT_NULL; /* no mem */
+    }
+
+    if (base_len > 0)
+    {
+        rt_memcpy(path_buffer, path, base_len);
+        path_buffer[base_len] = '/';
+        path_buffer[base_len + 1] = '\0';
+    }
+    else
+    {
+        *path_buffer = '\0';
+    }
+    strcat(path_buffer, pg_name);
+
+    if (_msh_lwp_cmd_exists(path_buffer))
+    {
+        return path_buffer;
+    }
+
+    if (rt_strstr(path_buffer, ".elf") != NULL)
+    {
+        goto not_found;
+    }
+
+    strcat(path_buffer, ".elf");
+    if (_msh_lwp_cmd_exists(path_buffer))
+    {
+        return path_buffer;
+    }
+
+not_found:
+    rt_free(path_buffer);
+    return RT_NULL;
+}
+
+/*
+ * search for the file named "pg_name" or "pg_name.elf" at each env path,
+ * and return its path. return NULL when not found.
+ */
+static char *_msh_exec_search_env(const char *pg_name)
+{
+    char *result = RT_NULL;
+    char *exec_path = RT_NULL;
+    char *search_path = RT_NULL;
+    char *pos = RT_NULL;
+    char tmp_ch = '\0';
+
+    if (!(exec_path = getenv("PATH")))
+    {
+        return RT_NULL;
+    }
+
+    /* exec path may need to be modified */
+    if (!(exec_path = strdup(exec_path)))
+    {
+        return RT_NULL;
+    }
+
+    pos = exec_path;
+    search_path = exec_path;
+
+    /* walk through the entire exec_path until finding the program wanted
+       or hitting its end */
+    while (1)
+    {
+        /* env paths are separated by ':' */
+        if (*pos == ':' || *pos == '\0')
+        {
+            tmp_ch = *pos;
+            *pos = '\0';
+
+            result = _msh_exec_search_path(search_path, pg_name);
+            if (result || tmp_ch == '\0')
+            {
+                goto ret;
+            }
+
+            pos++;
+            search_path = pos;
+            continue;
+        }
+
+        pos++;
+    }
+
+    /* release the duplicated exec_path and return */
+ret:
+    rt_free(exec_path);
+    return result;
+}
+
+int _msh_exec_lwp(int debug, char *cmd, rt_size_t length)
 {
     int argc;
     int cmd0_size = 0;
     char *argv[FINSH_ARG_MAX];
-    int fd = -1;
     char *pg_name;
-
-    extern int exec(char*, int, char**);
+    int ret;
 
     /* find the size of first command */
-    while ((cmd[cmd0_size] != ' ' && cmd[cmd0_size] != '\t') && cmd0_size < length)
+    while (cmd0_size < length && cmd[cmd0_size] != ' ' && cmd[cmd0_size] != '\t')
         cmd0_size ++;
     if (cmd0_size == 0)
         return -1;
@@ -354,27 +498,53 @@ static int _msh_exec_lwp(char *cmd, rt_size_t length)
     if (argc == 0)
         return -1;
 
-    pg_name = argv[0];
-    /* try to open program */
-    fd = open(pg_name, O_RDONLY, 0);
+    /* try to find program in working directory */
+    pg_name = _msh_exec_search_path("", argv[0]);
+    if (pg_name)
+    {
+        goto found_program;
+    }
 
-    if (fd < 0)
+    /* only check these paths when the first argument doesn't contain path
+       seperator */
+    if (rt_strstr(argv[0], "/"))
+    {
         return -1;
+    }
+
+    /* try to find program in /bin */
+    pg_name = _msh_exec_search_path("/bin", argv[0]);
+    if (pg_name)
+    {
+        goto found_program;
+    }
+
+    /* try to find program in dirs registered to env path */
+    pg_name = _msh_exec_search_env(argv[0]);
+    if (pg_name)
+    {
+        goto found_program;
+    }
+
+    /* not found in anywhere */
+    return -1;
 
     /* found program */
-    close(fd);
-    exec(pg_name, argc, argv);
+found_program:
+    ret = exec(pg_name, debug, argc, argv);
+    rt_free(pg_name);
 
-    return 0;
+    return ret;
 }
 #endif
 
+
 int msh_exec(char *cmd, rt_size_t length)
 {
-    int cmd_ret;
+    int cmd_ret = 0;
 
     /* strim the beginning of command */
-    while (*cmd  == ' ' || *cmd == '\t')
+    while ((length > 0) && (*cmd  == ' ' || *cmd == '\t'))
     {
         cmd++;
         length--;
@@ -389,9 +559,13 @@ int msh_exec(char *cmd, rt_size_t length)
      */
     if (_msh_exec_cmd(cmd, length, &cmd_ret) == 0)
     {
+        if(cmd_ret < 0)
+        {
+            rt_kprintf("%s: command failed %d.\n", cmd, cmd_ret);
+        }
         return cmd_ret;
     }
-#ifdef RT_USING_DFS
+#ifdef DFS_USING_POSIX
 #ifdef DFS_USING_WORKDIR
     if (msh_exec_script(cmd, length) == 0)
     {
@@ -404,15 +578,18 @@ int msh_exec(char *cmd, rt_size_t length)
     {
         return 0;
     }
-#endif
+#endif /* RT_USING_MODULE */
 
-#ifdef RT_USING_LWP
-    if (_msh_exec_lwp(cmd, length) == 0)
+#ifdef RT_USING_SMART
+    /* exec from msh_exec , debug = 0*/
+    /* _msh_exec_lwp return is pid , <= 0 means failed */
+    cmd_ret = _msh_exec_lwp(0, cmd, length);
+    if (cmd_ret > 0)
     {
         return 0;
     }
-#endif
-#endif
+#endif /* RT_USING_SMART */
+#endif /* DFS_USING_POSIX */
 
     /* truncate the cmd at the first space. */
     {
@@ -424,7 +601,16 @@ int msh_exec(char *cmd, rt_size_t length)
         }
         *tcmd = '\0';
     }
-    rt_kprintf("%s: command not found.\n", cmd);
+#ifdef RT_USING_SMART
+    if (cmd_ret == -EACCES)
+    {
+        rt_kprintf("%s: Permission denied.\n", cmd);
+    }
+    else
+#endif
+    {
+        rt_kprintf("%s: command not found.\n", cmd);
+    }
     return -1;
 }
 
@@ -441,26 +627,45 @@ static int str_common(const char *str1, const char *str2)
     return (str - str1);
 }
 
-#ifdef RT_USING_DFS
-void msh_auto_complete_path(char *path)
+#ifdef DFS_USING_POSIX
+void msh_auto_complete_path(char *path, rt_size_t path_size)
 {
     DIR *dir = RT_NULL;
     struct dirent *dirent = RT_NULL;
     char *full_path, *ptr, *index;
+    rt_size_t full_length, copy_length;
 
-    if (!path)
+    if (!path || path_size == 0)
+    {
         return;
+    }
 
-    full_path = (char *)rt_malloc(256);
+    full_path = (char *)rt_malloc(DFS_PATH_MAX);
     if (full_path == RT_NULL) return; /* out of memory */
 
+    full_path[0] = '\0';
     if (*path != '/')
     {
-        getcwd(full_path, 256);
-        if (full_path[rt_strlen(full_path) - 1]  != '/')
-            strcat(full_path, "/");
+        if (getcwd(full_path, DFS_PATH_MAX) == RT_NULL)
+        {
+            rt_free(full_path);
+            return;
+        }
+        full_path[DFS_PATH_MAX - 1] = '\0';
+
+        full_length = rt_strlen(full_path);
+        if (full_length > 0 && full_path[full_length - 1] != '/')
+        {
+            if (full_length + 1 >= DFS_PATH_MAX)
+            {
+                rt_free(full_path);
+                return;
+            }
+
+            full_path[full_length] = '/';
+            full_path[full_length + 1] = '\0';
+        }
     }
-    else *full_path = '\0';
 
     index = RT_NULL;
     ptr = path;
@@ -478,12 +683,16 @@ void msh_auto_complete_path(char *path)
         char *dest = index;
 
         /* fill the parent path */
-        ptr = full_path;
-        while (*ptr) ptr ++;
+        full_length = rt_strlen(full_path);
+        copy_length = (rt_size_t)(dest - path);
+        if (full_length + copy_length >= DFS_PATH_MAX)
+        {
+            rt_free(full_path);
+            return;
+        }
 
-        for (index = path; index != dest;)
-            *ptr++ = *index++;
-        *ptr = '\0';
+        rt_memcpy(full_path + full_length, path, copy_length);
+        full_path[full_length + copy_length] = '\0';
 
         dir = opendir(full_path);
         if (dir == RT_NULL) /* open directory failed! */
@@ -509,6 +718,7 @@ void msh_auto_complete_path(char *path)
     }
     else
     {
+        int multi = 0;
         rt_size_t length, min_length;
 
         min_length = 0;
@@ -518,13 +728,16 @@ void msh_auto_complete_path(char *path)
             if (dirent == RT_NULL) break;
 
             /* matched the prefix string */
-            if (strncmp(index, dirent->d_name, rt_strlen(index)) == 0)
+            if (rt_strncmp(index, dirent->d_name, rt_strlen(index)) == 0)
             {
+                multi ++;
                 if (min_length == 0)
                 {
-                    min_length = rt_strlen(dirent->d_name);
+                    copy_length = rt_strnlen(dirent->d_name, DFS_PATH_MAX - 1);
+                    min_length = copy_length;
                     /* save dirent name */
-                    strcpy(full_path, dirent->d_name);
+                    rt_memcpy(full_path, dirent->d_name, copy_length);
+                    full_path[copy_length] = '\0';
                 }
 
                 length = str_common(dirent->d_name, full_path);
@@ -538,7 +751,7 @@ void msh_auto_complete_path(char *path)
 
         if (min_length)
         {
-            if (min_length < rt_strlen(full_path))
+            if (multi > 1)
             {
                 /* list the candidate */
                 rewinddir(dir);
@@ -548,21 +761,58 @@ void msh_auto_complete_path(char *path)
                     dirent = readdir(dir);
                     if (dirent == RT_NULL) break;
 
-                    if (strncmp(index, dirent->d_name, rt_strlen(index)) == 0)
+                    if (rt_strncmp(index, dirent->d_name, rt_strlen(index)) == 0)
                         rt_kprintf("%s\n", dirent->d_name);
                 }
             }
 
             length = index - path;
-            memcpy(index, full_path, min_length);
+            if (length + min_length >= path_size)
+            {
+                closedir(dir);
+                rt_free(full_path);
+                return;
+            }
+
+            rt_memcpy(index, full_path, min_length);
             path[length + min_length] = '\0';
+
+            /* try to locate folder */
+            if (multi == 1)
+            {
+                struct stat buffer = {0};
+                if ((stat(path, &buffer) == 0))
+                {
+                    if (S_ISDIR(buffer.st_mode))
+                    {
+                        if (length + min_length + 1 < path_size)
+                        {
+                            path[length + min_length] = '/';
+                            path[length + min_length + 1] = '\0';
+                        }
+                    }
+                    else if (S_ISLNK(buffer.st_mode))
+                    {
+                        DIR *link_dir = opendir(path);
+                        if (link_dir)
+                        {
+                            closedir(link_dir);
+                            if (length + min_length + 1 < path_size)
+                            {
+                                path[length + min_length] = '/';
+                                path[length + min_length + 1] = '\0';
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 
     closedir(dir);
     rt_free(full_path);
 }
-#endif
+#endif /* DFS_USING_POSIX */
 
 void msh_auto_complete(char *prefix)
 {
@@ -579,7 +829,7 @@ void msh_auto_complete(char *prefix)
         return;
     }
 
-#ifdef RT_USING_DFS
+#ifdef DFS_USING_POSIX
     /* check whether a spare in the command */
     {
         char *ptr;
@@ -589,40 +839,38 @@ void msh_auto_complete(char *prefix)
         {
             if (*ptr == ' ')
             {
-                msh_auto_complete_path(ptr + 1);
+                msh_auto_complete_path(ptr + 1, FINSH_CMD_SIZE + 1 - (rt_size_t)(ptr + 1 - prefix));
                 break;
             }
 
             ptr --;
         }
-#ifdef RT_USING_MODULE
+#if defined(RT_USING_MODULE) || defined(RT_USING_SMART)
         /* There is a chance that the user want to run the module directly. So
          * try to complete the file names. If the completed path is not a
          * module, the system won't crash anyway. */
         if (ptr == prefix)
         {
-            msh_auto_complete_path(ptr);
+            msh_auto_complete_path(ptr, FINSH_CMD_SIZE + 1 - (rt_size_t)(ptr - prefix));
         }
-#endif
+#endif /* RT_USING_MODULE */
     }
-#endif
-
+#endif /* DFS_USING_POSIX */
+#if defined(FINSH_USING_SYMTAB)
     /* checks in internal command */
     {
         for (index = _syscall_table_begin; index < _syscall_table_end; FINSH_NEXT_SYSCALL(index))
         {
             /* skip finsh shell function */
-            if (strncmp(index->name, "__cmd_", 6) != 0) continue;
-
-            cmd_name = (const char *) &index->name[6];
-            if (strncmp(prefix, cmd_name, strlen(prefix)) == 0)
+            cmd_name = (const char *) index->name;
+            if (rt_strncmp(prefix, cmd_name, rt_strlen(prefix)) == 0)
             {
                 if (min_length == 0)
                 {
                     /* set name_ptr */
                     name_ptr = cmd_name;
                     /* set initial length */
-                    min_length = strlen(name_ptr);
+                    min_length = rt_strlen(name_ptr);
                 }
 
                 length = str_common(name_ptr, cmd_name);
@@ -633,7 +881,7 @@ void msh_auto_complete(char *prefix)
             }
         }
     }
-
+#endif /* FINSH_USING_SYMTAB */
     /* auto complete string */
     if (name_ptr != NULL)
     {
@@ -642,6 +890,164 @@ void msh_auto_complete(char *prefix)
 
     return ;
 }
-#endif
 
-#endif /* FINSH_USING_MSH */
+#ifdef FINSH_USING_OPTION_COMPLETION
+static msh_cmd_opt_t *msh_get_cmd_opt(char *opt_str)
+{
+    struct finsh_syscall *index;
+    msh_cmd_opt_t *opt = RT_NULL;
+    char *ptr;
+    int len;
+
+    ptr = strchr(opt_str, ' ');
+    if (ptr)
+    {
+        len = ptr - opt_str;
+    }
+    else
+    {
+        len = rt_strlen(opt_str);
+    }
+#if defined(FINSH_USING_SYMTAB)
+    for (index = _syscall_table_begin;
+            index < _syscall_table_end;
+            FINSH_NEXT_SYSCALL(index))
+    {
+        if (rt_strncmp(index->name, opt_str, len) == 0 && index->name[len] == '\0')
+        {
+            opt = index->opt;
+            break;
+        }
+    }
+#endif /* FINSH_USING_SYMTAB */
+    return opt;
+}
+
+static int msh_get_argc(char *prefix, char **last_argv)
+{
+    int argc = 0;
+    char *ch = prefix;
+
+    while (*ch)
+    {
+        if ((*ch == ' ') && *(ch + 1) && (*(ch + 1) != ' '))
+        {
+            *last_argv = ch + 1;
+            argc++;
+        }
+        ch++;
+    }
+
+    return argc;
+}
+
+static void msh_opt_complete(char *opts_str, struct msh_cmd_opt *cmd_opt)
+{
+    struct msh_cmd_opt *opt = cmd_opt;
+    const char *name_ptr = RT_NULL;
+    int min_length = 0, length, opts_str_len;
+
+    opts_str_len = rt_strlen(opts_str);
+
+    for (opt = cmd_opt; opt->id; opt++)
+    {
+        if (!rt_strncmp(opt->name, opts_str, opts_str_len))
+        {
+            if (min_length == 0)
+            {
+                /* set name_ptr */
+                name_ptr = opt->name;
+                /* set initial length */
+                min_length = rt_strlen(name_ptr);
+            }
+
+            length = str_common(name_ptr, opt->name);
+            if (length < min_length)
+            {
+                min_length = length;
+            }
+
+            rt_kprintf("%s\n", opt->name);
+        }
+    }
+    rt_kprintf("\n");
+
+    if (name_ptr != NULL)
+    {
+        rt_strncpy(opts_str, name_ptr, min_length);
+    }
+}
+
+static void msh_opt_help(msh_cmd_opt_t *cmd_opt)
+{
+    msh_cmd_opt_t *opt = cmd_opt;
+
+    for (; opt->id; opt++)
+    {
+        rt_kprintf("%-16s - %s\n", opt->name, opt->des);
+    }
+    rt_kprintf("\n");
+}
+
+void msh_opt_auto_complete(char *prefix)
+{
+    int argc;
+    char *opt_str = RT_NULL;
+    msh_cmd_opt_t *opt = RT_NULL;
+
+    argc = msh_get_argc(prefix, &opt_str);
+    if (argc)
+    {
+        opt = msh_get_cmd_opt(prefix);
+    }
+    else if (!msh_get_cmd(prefix, rt_strlen(prefix)) && (' ' == prefix[rt_strlen(prefix) - 1]))
+    {
+        opt = msh_get_cmd_opt(prefix);
+    }
+
+    if (opt && opt->id)
+    {
+        switch (argc)
+        {
+        case 0:
+            msh_opt_help(opt);
+            break;
+
+        case 1:
+            msh_opt_complete(opt_str, opt);
+            break;
+
+        default:
+            break;
+        }
+    }
+}
+
+int msh_cmd_opt_id_get(int argc, char *argv[], void *options)
+{
+    msh_cmd_opt_t *opt = (msh_cmd_opt_t *) options;
+    int opt_id;
+
+    for (opt_id = 0; (argc >= 2) && opt && opt->id; opt++)
+    {
+        if (!rt_strcmp(opt->name, argv[1]))
+        {
+            opt_id = opt->id;
+            break;
+        }
+    }
+
+    return opt_id;
+}
+
+void msh_opt_list_dump(void *options)
+{
+    msh_cmd_opt_t *opt = (msh_cmd_opt_t *) options;
+
+    for (; opt && opt->id; opt++)
+    {
+        rt_kprintf("    %-16s - %s\n", opt->name, opt->des);
+    }
+}
+#endif /* FINSH_USING_OPTION_COMPLETION */
+#endif /* RT_USING_FINSH */

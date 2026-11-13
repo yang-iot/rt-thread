@@ -15,10 +15,27 @@
   * @version V1.0
   * @date    25 Apr 2019
   * @author  AE Team
+  * @note
+  *          Change Logs:
+  *          Date            Author          Notes
+  *          25 Apr 2019     AE Team         The first version
   *
   * Copyright (C) Shanghai Eastsoft Microelectronics Co. Ltd. All rights reserved.
   *
-  ********************************************************************************
+  * SPDX-License-Identifier: Apache-2.0
+  *
+  * Licensed under the Apache License, Version 2.0 (the License); you may
+  * not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  **********************************************************************************
   * @verbatim
   ==============================================================================
                         ##### How to use this driver #####
@@ -116,10 +133,7 @@
   ******************************************************************************
   */
 
-#include "ald_rtc.h"
-#include "ald_bkpc.h"
-#include "ald_tsense.h"
-#include "ald_syscfg.h"
+#include "ald_conf.h"
 
 
 /** @addtogroup ES32FXXX_ALD
@@ -311,7 +325,7 @@ void ald_rtc_source_select(rtc_source_sel_t sel)
   * @param  format: Data format.
   * @retval ALD status.
   */
-ald_status_t  ald_rtc_set_time(rtc_time_t *time, rtc_format_t format)
+ald_status_t ald_rtc_set_time(rtc_time_t *time, rtc_format_t format)
 {
 	uint32_t tmp;
 
@@ -336,7 +350,6 @@ ald_status_t  ald_rtc_set_time(rtc_time_t *time, rtc_format_t format)
 
 	RTC_UNLOCK();
 	WRITE_REG(RTC->TIME, tmp);
-	WRITE_REG(RTC->SSEC, time->sub_sec);
 	RTC_LOCK();
 
 	tmp = ald_get_tick();
@@ -798,12 +811,12 @@ void ald_rtc_set_tamper(rtc_tamper_t *tamper)
 	MODIFY_REG(RTC->TAMPCON, RTC_TAMPCON_TAMPFLT_MSK, tamper->dur << RTC_TAMPCON_TAMPFLT_POSS);
 
 	if (tamper->idx == RTC_TAMPER_0) {
-		MODIFY_REG(RTC->TAMPCON, RTC_TAMPCON_TAMP1LV_MSK, tamper->trig << RTC_TAMPCON_TAMP1LV_POS);
-		SET_BIT(RTC->TAMPCON, RTC_TAMPCON_TAMP1EN_MSK);
+		MODIFY_REG(RTC->TAMPCON, RTC_TAMPCON_TAMP0LV_MSK, tamper->trig << RTC_TAMPCON_TAMP0LV_POS);
+		SET_BIT(RTC->TAMPCON, RTC_TAMPCON_TAMP0EN_MSK);
 	}
 	else {
-		MODIFY_REG(RTC->TAMPCON, RTC_TAMPCON_TAMP2LV_MSK, tamper->trig << RTC_TAMPCON_TAMP2LV_POS);
-		SET_BIT(RTC->TAMPCON, RTC_TAMPCON_TAMP2EN_MSK);
+		MODIFY_REG(RTC->TAMPCON, RTC_TAMPCON_TAMP1LV_MSK, tamper->trig << RTC_TAMPCON_TAMP1LV_POS);
+		SET_BIT(RTC->TAMPCON, RTC_TAMPCON_TAMP1EN_MSK);
 	}
 
 	RTC_LOCK();
@@ -824,9 +837,9 @@ void ald_rtc_cancel_tamper(rtc_tamper_idx_t idx)
 	RTC_UNLOCK();
 
 	if (idx == RTC_TAMPER_0)
-		CLEAR_BIT(RTC->TAMPCON, RTC_TAMPCON_TAMP1EN_MSK);
+		CLEAR_BIT(RTC->TAMPCON, RTC_TAMPCON_TAMP0EN_MSK);
 	else
-		CLEAR_BIT(RTC->TAMPCON, RTC_TAMPCON_TAMP2EN_MSK);
+		CLEAR_BIT(RTC->TAMPCON, RTC_TAMPCON_TAMP1EN_MSK);
 
 	RTC_LOCK();
 	return;
@@ -1158,7 +1171,7 @@ flag_status_t ald_rtc_get_flag_status(rtc_flag_t flag)
 {
 	assert_param(IS_RTC_IF(flag));
 
-	if (READ_BIT(RTC->IFR, flag))
+	if ((READ_BIT(RTC->IER, flag)) && (READ_BIT(RTC->ISR, flag)))
 		return SET;
 
 	return RESET;

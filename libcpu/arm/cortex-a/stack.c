@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006-2018, RT-Thread Development Team
+ * Copyright (c) 2006-2021, RT-Thread Development Team
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -9,11 +9,11 @@
  * 2011-10-05     Bernard      add thumb mode
  */
 #include <rtthread.h>
+#include <cpuport.h>
 #include <board.h>
-#include <armv7.h>
 
 /**
- * @addtogroup AM33xx
+ * @addtogroup ARM Cortex-A
  */
 /*@{*/
 
@@ -35,7 +35,7 @@ rt_uint8_t *rt_hw_stack_init(void *tentry, void *parameter,
     stack_addr += sizeof(rt_uint32_t);
     stack_addr  = (rt_uint8_t *)RT_ALIGN_DOWN((rt_uint32_t)stack_addr, 8);
     stk      = (rt_uint32_t *)stack_addr;
-    *(--stk) = (rt_uint32_t)tentry;         /* entry point */
+    *(--stk) = (rt_uint32_t)_thread_start;  /* entry point */
     *(--stk) = (rt_uint32_t)texit;          /* lr */
     *(--stk) = 0xdeadbeef;                  /* r12 */
     *(--stk) = 0xdeadbeef;                  /* r11 */
@@ -48,20 +48,26 @@ rt_uint8_t *rt_hw_stack_init(void *tentry, void *parameter,
     *(--stk) = 0xdeadbeef;                  /* r4 */
     *(--stk) = 0xdeadbeef;                  /* r3 */
     *(--stk) = 0xdeadbeef;                  /* r2 */
-    *(--stk) = 0xdeadbeef;                  /* r1 */
-    *(--stk) = (rt_uint32_t)parameter;      /* r0 : argument */
+    *(--stk) = (rt_uint32_t)tentry;         /* r1 : argument 2 for trampoline */
+    *(--stk) = (rt_uint32_t)parameter;      /* r0 : argument 1 */
     /* cpsr */
     if ((rt_uint32_t)tentry & 0x01)
         *(--stk) = SVCMODE | 0x20;          /* thumb mode */
     else
         *(--stk) = SVCMODE;                 /* arm mode   */
 
-#ifdef RT_USING_LWP
+#ifdef RT_USING_SMART
     *(--stk) = 0;       /* user lr */
     *(--stk) = 0;       /* user sp*/
 #endif
 #ifdef RT_USING_FPU
-    *(--stk) = 0;       /* not use fpu*/
+    /* FPU context initialization matches context_gcc.S restore order:
+     * Stack layout (high to low): FPEXC -> FPSCR -> D16-D31 -> D0-D15
+     */
+    stk -= VFP_DATA_NR;
+    rt_memset(stk, 0, VFP_DATA_NR * sizeof(rt_uint32_t));  /* Initialize D0-D31 (64 words for 32 double regs) */
+    *(--stk) = 0;       /* FPSCR: Floating-Point Status and Control Register */
+    *(--stk) = 0x40000000;  /* FPEXC: Enable FPU (bit 30 = EN) */
 #endif
 
     /* return task's current stack address */

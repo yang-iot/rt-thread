@@ -3,18 +3,29 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  *
+ * Licensed under the Apache License, Version 2.0 (the License); you may
+ * not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
  * Change Logs:
  * Date           Author        Notes
  * 2019-04-08     wangyq        the first version
  * 2019-11-01     wangyq        adapt to the new power management interface
+ * 2020-12-15     liuhy        the first version
  */
 
-#include <board.h>
-#include <rtdevice.h>
-#include <ald_cmu.h>
-#include <ald_pmu.h>
+#include "drv_pm.h"
 
 #ifdef RT_USING_PM
+
 
 static void uart_console_reconfig(void)
 {
@@ -24,10 +35,13 @@ static void uart_console_reconfig(void)
 }
 
 /**
- * This function will put ES32F033x into sleep mode.
+ * This function will put ES32F065x into sleep mode.
  *
  * @param pm pointer to power manage structure
  */
+
+
+/* 注意：进入睡眠前，如果有中断挂起（SYSTICK、PENDSV、UART、EXTI等），睡眠将被瞬间唤醒。*/
 static void sleep(struct rt_pm *pm, uint8_t mode)
 {
     switch (mode)
@@ -36,7 +50,6 @@ static void sleep(struct rt_pm *pm, uint8_t mode)
         break;
 
     case PM_SLEEP_MODE_IDLE:
-        //__WFI();
         break;
 
     case PM_SLEEP_MODE_LIGHT:

@@ -10,6 +10,20 @@
  * @note
  *
  * Copyright (C) Shanghai Eastsoft Microelectronics Co. Ltd. All rights reserved.
+  *
+  * SPDX-License-Identifier: Apache-2.0
+  *
+  * Licensed under the Apache License, Version 2.0 (the License); you may
+  * not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
  *
  ********************************************************************************
  */
@@ -38,12 +52,11 @@ extern "C" {
 /**
   * @brief Wwdt no dog window
   */
-typedef enum
-{
-    WWDT_WIN_25 = 0x0,	/**< No dog window size: 25% */
-    WWDT_WIN_50 = 0x1,	/**< No dog window size: 50% */
-    WWDT_WIN_75 = 0x2,	/**< No dog window size: 75% */
-    WWDT_WIN_00 = 0x3,	/**< No dog window size: 0% */
+typedef enum {
+	WWDT_WIN_25 = 0x0U,	/**< No dog window size: 25% */
+	WWDT_WIN_50 = 0x1U,	/**< No dog window size: 50% */
+	WWDT_WIN_75 = 0x2U,	/**< No dog window size: 75% */
+	WWDT_WIN_00 = 0x3U,	/**< No dog window size: 0% */
 } wwdt_win_t;
 
 /**
@@ -54,10 +67,10 @@ typedef enum
  * @defgroup WDT_Private_Macros WDT Private Macros
  * @{
  */
-#define WWDT_UNLOCK() {WRITE_REG(WWDT->LOCK, 0x1ACCE551);}
-#define WWDT_LOCK()   {WRITE_REG(WWDT->LOCK, 0xFFFFFFFF);}
-#define IWDT_UNLOCK() {WRITE_REG(IWDT->LOCK, 0x1ACCE551);}
-#define IWDT_LOCK()   {WRITE_REG(IWDT->LOCK, 0xFFFFFFFF);}
+#define WWDT_UNLOCK() {WRITE_REG(WWDT->LOCK, 0x1ACCE551U);}
+#define WWDT_LOCK()   {WRITE_REG(WWDT->LOCK, 0xFFFFFFFFU);}
+#define IWDT_UNLOCK() {WRITE_REG(IWDT->LOCK, 0x1ACCE551U);}
+#define IWDT_LOCK()   {WRITE_REG(IWDT->LOCK, 0xFFFFFFFFU);}
 
 /**
  * @}
@@ -72,7 +85,7 @@ typedef enum
                                  (x == WWDT_WIN_75) || \
                                  (x == WWDT_WIN_00))
 #define IS_FUNC_STATE(x)	(((x) == DISABLE) || \
-                             ((x) == ENABLE))
+				 ((x) == ENABLE))
 /**
  * @}
  */

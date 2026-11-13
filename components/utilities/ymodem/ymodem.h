@@ -1,5 +1,5 @@
 /*
- * COPYRIGHT (C) 2012, Real-Thread Information Technology Ltd
+ * COPYRIGHT (C) 2011-2022, Real-Thread Information Technology Ltd
  * All rights reserved
  *
  * SPDX-License-Identifier: Apache-2.0
@@ -8,6 +8,8 @@
  * Date           Author       Notes
  * 2013-04-14     Grissiom     initial implementation
  * 2019-12-09     Steven Liu   add YMODEM send protocol
+ * 2022-08-04     Meco Man     move error codes to rym_code to silence warnings
+ * 2026-02-01     wdfk-prog    update ymodem callbacks and error handling
  */
 
 #ifndef __YMODEM_H__
@@ -17,7 +19,6 @@
 #include <string.h>
 
 /* The word "RYM" is stand for "Real-YModem". */
-
 enum rym_code
 {
     RYM_CODE_NONE = 0x00,
@@ -28,29 +29,17 @@ enum rym_code
     RYM_CODE_NAK  = 0x15,
     RYM_CODE_CAN  = 0x18,
     RYM_CODE_C    = 0x43,
-};
 
-/* RYM error code
- *
- * We use the rt_err_t to return error values. We take use of current error
- * codes available in RTT and append ourselves.
- */
-/* timeout on handshake */
-#define RYM_ERR_TMO  0x70
-/* wrong code, wrong SOH, STX etc. */
-#define RYM_ERR_CODE 0x71
-/* wrong sequence number */
-#define RYM_ERR_SEQ  0x72
-/* wrong CRC checksum */
-#define RYM_ERR_CRC  0x73
-/* not enough data received */
-#define RYM_ERR_DSZ  0x74
-/* the transmission is aborted by user */
-#define RYM_ERR_CAN  0x75
-/* wrong answer, wrong ACK or C */
-#define RYM_ERR_ACK  0x76
-/* transmit file invalid */
-#define RYM_ERR_FILE 0x77
+    /* RYM error code */
+    RYM_ERR_TMO   = 0x70, /* timeout on handshake */
+    RYM_ERR_CODE  = 0x71, /* wrong code, wrong SOH, STX etc */
+    RYM_ERR_SEQ   = 0x72, /* wrong sequence number */
+    RYM_ERR_CRC   = 0x73, /* wrong CRC checksum */
+    RYM_ERR_DSZ   = 0x74, /* not enough data received */
+    RYM_ERR_CAN   = 0x75, /* the transmission is aborted by user */
+    RYM_ERR_ACK   = 0x76, /* wrong answer, wrong ACK or C */
+    RYM_ERR_FILE  = 0x77, /* transmit file invalid */
+};
 
 /* how many ticks wait for chars between packet. */
 #ifndef RYM_WAIT_CHR_TICK
@@ -70,9 +59,14 @@ enum rym_code
 #define RYM_END_SESSION_SEND_CAN_NUM  0x07
 #endif
 
+/* how many retries were made when the error occurred */
+#ifndef RYM_MAX_ERRORS
+#define RYM_MAX_ERRORS    ((rt_size_t)5)
+#endif
+
 enum rym_stage
 {
-    RYM_STAGE_NONE,
+    RYM_STAGE_NONE = 0,
     /* set when C is send */
     RYM_STAGE_ESTABLISHING,
     /* set when we've got the packet 0 and sent ACK and second C */
@@ -88,13 +82,22 @@ enum rym_stage
 };
 
 struct rym_ctx;
-/* When receiving files, the buf will be the data received from ymodem protocol
+/**
+ * @brief YMODEM callback signature.
+ *
+ * @param ctx The context of the current session.
+ *
+ * @note When receiving files, the buf will be the data received from ymodem protocol
  * and the len is the data size.
  *
  * When sending files, the len is the buf size in RYM. The callback need to
  * fill the buf with data to send. Returning RYM_CODE_EOT will terminate the
  * transfer and the buf will be discarded. Any other return values will cause
  * the transfer continue.
+ *
+ * @note Keep this typedef unchanged for compatibility with external packages.
+ *       To allow error-aware handling without breaking ABI, add state fields
+ *       (e.g. ctx->last_err) in rym_ctx for callbacks to inspect.
  */
 typedef enum rym_code(*rym_callback)(struct rym_ctx *ctx, rt_uint8_t *buf, rt_size_t len);
 
@@ -105,14 +108,37 @@ typedef enum rym_code(*rym_callback)(struct rym_ctx *ctx, rt_uint8_t *buf, rt_si
  */
 struct rym_ctx
 {
+    /**
+     * @brief Data callback for each received/sent block.
+     */
     rym_callback on_data;
+    /**
+     * @brief Begin callback for the initial header block.
+     */
     rym_callback on_begin;
+    /**
+     * @brief End callback for session finalization.
+     *        Callers should check ctx->last_err to distinguish success vs failure.
+     */
     rym_callback on_end;
     /* When error happened, user need to check this to get when the error has
      * happened. */
     enum rym_stage stage;
     /* user could get the error content through this */
     rt_uint8_t *buf;
+    /**
+     * @brief Callback lifecycle state: set when on_begin succeeds.
+     */
+    rt_uint8_t begin_called;
+    /**
+     * @brief Callback lifecycle state: set when on_end is invoked.
+     */
+    rt_uint8_t end_called;
+    /**
+     * @brief Last transfer error seen by the core state machine.
+     *        on_end can inspect this to distinguish success vs failure.
+     */
+    rt_err_t last_err;
 
     struct rt_semaphore sem;
 

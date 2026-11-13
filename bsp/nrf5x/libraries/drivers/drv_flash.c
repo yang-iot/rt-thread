@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006-2018, RT-Thread Development Team
+ * Copyright (c) 2006-2025, RT-Thread Development Team
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -14,7 +14,7 @@
 
 #ifdef BSP_USING_ON_CHIP_FLASH
 
-#if defined(PKG_USING_FAL)
+#if defined(RT_USING_FAL)
 #include "fal.h"
 #endif
 
@@ -95,8 +95,8 @@ int mcu_flash_write(rt_uint32_t addr, const uint8_t *buf, size_t size)
     if (addr % 4 != 0)
     {
         LOG_E("write addr should be 4-byte alignment");
-        //4byte write
-        //else byts
+        /* 4byte write */
+        /* else byts */
         return -RT_EINVAL;
     }
 
@@ -104,6 +104,7 @@ int mcu_flash_write(rt_uint32_t addr, const uint8_t *buf, size_t size)
     {
         return -RT_ERROR;
     }
+
     if (size % 4 != 0)
     {
         nrfx_nvmc_bytes_write(addr, buf, size);
@@ -129,7 +130,7 @@ int mcu_flash_write(rt_uint32_t addr, const uint8_t *buf, size_t size)
  */
 int mcu_flash_erase(rt_uint32_t addr, size_t size)
 {
-    nrfx_err_t result = RT_EOK;
+    nrfx_err_t result = NRFX_SUCCESS;
 
     uint32_t FirstPage = 0, NbOfPages = 0;
 
@@ -155,7 +156,7 @@ int mcu_flash_erase(rt_uint32_t addr, size_t size)
     return size;
 }
 
-#if defined(PKG_USING_FAL)
+#if defined(RT_USING_FAL)
 
 static int fal_flash_read(long offset, rt_uint8_t *buf, size_t size);
 static int fal_flash_write(long offset, const rt_uint8_t *buf, size_t size);
@@ -186,3 +187,4 @@ const struct fal_flash_dev mcu_onchip_flash =
 };
 #endif
 #endif /* BSP_USING_ON_CHIP_FLASH */
+

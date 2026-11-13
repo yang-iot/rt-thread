@@ -9,14 +9,30 @@
   * @date    19 Jun 2019
   * @author  AE Team
   * @note
+  *          Change Logs:
+  *          Date            Author          Notes
+  *          19 Jun 2019     AE Team         The first version
   *
   * Copyright (C) Shanghai Eastsoft Microelectronics Co. Ltd. All rights reserved.
   *
-  *********************************************************************************
+  * SPDX-License-Identifier: Apache-2.0
+  *
+  * Licensed under the Apache License, Version 2.0 (the License); you may
+  * not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  **********************************************************************************
   */
 
 
-#include "ald_crypt.h"
+#include "ald_conf.h"
 
 
 /** @addtogroup ES32FXXX_ALD
@@ -145,11 +161,10 @@ ald_status_t ald_crypt_write_key(crypt_handle_t *hperh, uint32_t * key, crypt_ke
 	uint32_t *temp   = key;
 	uint32_t i;
 
-	if (hperh->state == CRYPT_STATE_BUSY)
-		return BUSY;
-
 	if ((hperh == NULL) || (key == NULL))
 		return ERROR;
+	if (hperh->state == CRYPT_STATE_BUSY)
+		return BUSY;
 
 	assert_param(IS_CRYPT(hperh->perh));
 	assert_param(IS_CRYPT_KEY_LEN(len));
@@ -161,14 +176,29 @@ ald_status_t ald_crypt_write_key(crypt_handle_t *hperh, uint32_t * key, crypt_ke
 	case KEY_8_LEN:
 		hperh->perh->KEY[7] = *temp++;
 		hperh->perh->KEY[6] = *temp++;
+		hperh->perh->KEY[5] = *temp++;
+		hperh->perh->KEY[4] = *temp++;
+		hperh->perh->KEY[3] = *temp++;
+		hperh->perh->KEY[2] = *temp++;
+		hperh->perh->KEY[1] = *temp++;
+		hperh->perh->KEY[0] = *temp;
+		break;
 
 	case KEY_6_LEN:
 		hperh->perh->KEY[5] = *temp++;
 		hperh->perh->KEY[4] = *temp++;
+		hperh->perh->KEY[3] = *temp++;
+		hperh->perh->KEY[2] = *temp++;
+		hperh->perh->KEY[1] = *temp++;
+		hperh->perh->KEY[0] = *temp;
+		break;
 
 	case KEY_4_LEN:
 		hperh->perh->KEY[3] = *temp++;
 		hperh->perh->KEY[2] = *temp++;
+		hperh->perh->KEY[1] = *temp++;
+		hperh->perh->KEY[0] = *temp;
+		break;
 
 	case KEY_2_LEN:
 		hperh->perh->KEY[1] = *temp++;
@@ -199,11 +229,10 @@ ald_status_t ald_crypt_read_key(crypt_handle_t *hperh, uint32_t * key, crypt_key
 {
 	uint32_t *temp   = key;
 
-	if (hperh->state == CRYPT_STATE_BUSY)
-		return BUSY;
-
 	if ((hperh == NULL) || (key == NULL))
 		return ERROR;
+	if (hperh->state == CRYPT_STATE_BUSY)
+		return BUSY;
 
 	assert_param(IS_CRYPT(hperh->perh));
 	assert_param(IS_CRYPT_KEY_LEN(len));
@@ -212,18 +241,33 @@ ald_status_t ald_crypt_read_key(crypt_handle_t *hperh, uint32_t * key, crypt_key
 	case KEY_8_LEN:
 		*temp++ = hperh->perh->KEY[7];
 		*temp++ = hperh->perh->KEY[6];
+		*temp++ = hperh->perh->KEY[5];
+		*temp++ = hperh->perh->KEY[4];
+		*temp++ = hperh->perh->KEY[3];
+		*temp++ = hperh->perh->KEY[2];
+		*temp++ = hperh->perh->KEY[1];
+		*temp   = hperh->perh->KEY[0];
+		break;
 
 	case KEY_6_LEN:
 		*temp++ = hperh->perh->KEY[5];
 		*temp++ = hperh->perh->KEY[4];
+		*temp++ = hperh->perh->KEY[3];
+		*temp++ = hperh->perh->KEY[2];
+		*temp++ = hperh->perh->KEY[1];
+		*temp   = hperh->perh->KEY[0];
+		break;
 
 	case KEY_4_LEN:
 		*temp++ = hperh->perh->KEY[3];
 		*temp++ = hperh->perh->KEY[2];
+		*temp++ = hperh->perh->KEY[1];
+		*temp   = hperh->perh->KEY[0];
+		break;
 
 	case KEY_2_LEN:
 		*temp++ = hperh->perh->KEY[1];
-		*temp = hperh->perh->KEY[0];
+		*temp   = hperh->perh->KEY[0];
 		break;
 
 	default:
@@ -245,11 +289,11 @@ ald_status_t ald_crypt_write_ivr(crypt_handle_t *hperh, uint32_t * iv, crypt_ivr
 {
 	uint32_t *temp = iv;
 	uint32_t i;
-	if (hperh->state == CRYPT_STATE_BUSY)
-		return BUSY;
 
 	if ((hperh == NULL) || (iv == NULL))
 		return ERROR;
+	if (hperh->state == CRYPT_STATE_BUSY)
+		return BUSY;
 
 	assert_param(IS_CRYPT(hperh->perh));
 	assert_param(IS_CRYPT_IV_LEN(len));
@@ -258,6 +302,9 @@ ald_status_t ald_crypt_write_ivr(crypt_handle_t *hperh, uint32_t * iv, crypt_ivr
 	case IV_4_LEN:
 		hperh->perh->IV[3] = *temp++;
 		hperh->perh->IV[2] = *temp++;
+		hperh->perh->IV[1] = *temp++;
+		hperh->perh->IV[0] = *temp;
+		break;
 
 	case IV_2_LEN:
 		hperh->perh->IV[1] = *temp++;
@@ -289,11 +336,10 @@ ald_status_t ald_crypt_read_ivr(crypt_handle_t *hperh, uint32_t *iv, crypt_ivr_l
 {
 	uint32_t *temp   = iv;
 
-	if (hperh->state == CRYPT_STATE_BUSY)
-		return BUSY;
-
 	if ((hperh == NULL) || (iv == NULL))
 		return ERROR;
+	if (hperh->state == CRYPT_STATE_BUSY)
+		return BUSY;
 
 	assert_param(IS_CRYPT(hperh->perh));
 	assert_param(IS_CRYPT_IV_LEN(len));
@@ -302,10 +348,13 @@ ald_status_t ald_crypt_read_ivr(crypt_handle_t *hperh, uint32_t *iv, crypt_ivr_l
 	case IV_4_LEN:
 		*temp++ = hperh->perh->IV[3];
 		*temp++ = hperh->perh->IV[2];
+		*temp++ = hperh->perh->IV[1];
+		*temp   = hperh->perh->IV[0];
+		break;
 
 	case IV_2_LEN:
 		*temp++ = hperh->perh->IV[1];
-		*temp = hperh->perh->IV[0];
+		*temp   = hperh->perh->IV[0];
 		break;
 
 	default:
@@ -512,7 +561,7 @@ ald_status_t ald_crypt_gcm_verify(crypt_handle_t *hperh, uint8_t *cipher_text, u
 	}
 	len += 4;
 
-	CRYPT->CON &= ~(3 << CRYPT_CON_MODE_POSS);
+	CRYPT->CON &= ~(3U << CRYPT_CON_MODE_POSS);
 	CRYPT->CON |= (CRYPT_MODE_ECB << CRYPT_CON_MODE_POSS);
 
 	ald_crypt_encrypt(hperh, ecb, ecb, 16);
@@ -538,7 +587,7 @@ ald_status_t ald_crypt_gcm_verify(crypt_handle_t *hperh, uint8_t *cipher_text, u
 	 */
 	tag_temp = (uint32_t *)tag;
 	ald_crypt_init(hperh);
-	CRYPT->CON &= ~(3 << CRYPT_CON_MODE_POSS);
+	CRYPT->CON &= ~(3U << CRYPT_CON_MODE_POSS);
 	CRYPT->CON |= (CRYPT_MODE_CTR << CRYPT_CON_MODE_POSS);
 	ald_crypt_write_key(hperh, hperh->key, KEY_4_LEN);
 	hperh->iv[3] = 1;

@@ -1,12 +1,5 @@
 menu "Hardware Drivers Config"
 
-config SOC_STM32F103ZE
-    bool
-    select SOC_SERIES_STM32F1
-    select RT_USING_COMPONENTS_INIT
-    select RT_USING_USER_MAIN
-    default y
-
 menu "Onboard Peripheral Drivers"
 
     config BSP_USING_SDIO_SDCARD
@@ -16,7 +9,7 @@ menu "Onboard Peripheral Drivers"
         select RT_USING_DFS_ELMFAT
         select RT_USING_PIN
         default n
-        
+
     config BSP_USING_SPI_SDCARD
         bool "Enable SDCARD (spi2)"
         select BSP_USING_SPI
@@ -25,7 +18,7 @@ menu "Onboard Peripheral Drivers"
         select RT_USING_DFS
         select RT_USING_DFS_ELMFAT
         default n
-        
+
     config BSP_USING_SPI_FLASH
         bool "Enable SPI FLASH (W25Q64 spi2)"
         select BSP_USING_SPI
@@ -33,11 +26,25 @@ menu "Onboard Peripheral Drivers"
         select RT_USING_SFUD
         select RT_SFUD_USING_SFDP
         default n
-        
+
     config BSP_USING_EEPROM
-        bool "Enable I2C EEPROM (i2c2)"
-        select BSP_USING_I2C2
+        bool "Enable I2C EEPROM (swi2c2)"
+        select RT_USING_I2C
+        select BSP_USING_SOFT_I2C
+        select BSP_USING_SOFT_I2C2
         default n
+    config RT_SOFT_I2C2_HAS_PIN_DEFAULT
+        bool
+        default y if RT_USING_SOFT_I2C2
+
+    config RT_SOFT_I2C2_SCL_PIN_DEFAULT
+        int
+        default 26 if RT_USING_SOFT_I2C2
+
+    config RT_SOFT_I2C2_SDA_PIN_DEFAULT
+        int
+        default 27 if RT_USING_SOFT_I2C2
+
 endmenu
 
 menu "On-chip Peripheral Drivers"
@@ -52,12 +59,46 @@ menu "On-chip Peripheral Drivers"
         default y
         select RT_USING_SERIAL
         if BSP_USING_UART
-            config BSP_USING_UART1
+            config BSP_STM32_UART_V1_TX_TIMEOUT
+                int "UART TX timeout"
+                default 2000
+                depends on RT_USING_SERIAL_V1
+                
+            menuconfig BSP_USING_UART1
                 bool "Enable UART1"
                 default y
+                if BSP_USING_UART1
+                    config BSP_UART1_RX_USING_DMA
+                        bool "Enable UART1 RX DMA"
+                        depends on BSP_USING_UART1 && RT_SERIAL_USING_DMA
+                        default n
+
+                    config BSP_UART1_TX_USING_DMA
+                        bool "Enable UART1 TX DMA"
+                        depends on BSP_USING_UART1 && RT_SERIAL_USING_DMA
+                        default n
+
+                    config BSP_UART1_RX_BUFSIZE
+                        int "Set UART1 RX buffer size"
+                        range 64 65535
+                        depends on RT_USING_SERIAL_V2
+                        default 256
+
+                    config BSP_UART1_TX_BUFSIZE
+                        int "Set UART1 TX buffer size"
+                        range 0 65535
+                        depends on RT_USING_SERIAL_V2
+                        default 0
+
+                    config BSP_UART1_DMA_PING_BUFSIZE
+                        int "Set UART1 RX DMA ping-pong buffer size"
+                        range 32 65535
+                        depends on RT_USING_SERIAL_V2 && BSP_UART1_RX_USING_DMA
+                        default 64    
+                endif
 
         endif
-        
+
     menuconfig BSP_USING_SPI
         bool "Enable SPI BUS"
         default n
@@ -71,7 +112,7 @@ menu "On-chip Peripheral Drivers"
                 bool "Enable SPI1 TX DMA"
                 depends on BSP_USING_SPI1
                 default n
-                
+
             config BSP_SPI1_RX_USING_DMA
                 bool "Enable SPI1 RX DMA"
                 depends on BSP_USING_SPI1
@@ -80,64 +121,65 @@ menu "On-chip Peripheral Drivers"
 
             config BSP_USING_SPI2
                 bool "Enable SPI2 BUS"
-                default n  
-                
+                default n
+
             config BSP_SPI2_TX_USING_DMA
                 bool "Enable SPI2 TX DMA"
                 depends on BSP_USING_SPI2
                 default n
-                
+
             config BSP_SPI2_RX_USING_DMA
                 bool "Enable SPI2 RX DMA"
                 depends on BSP_USING_SPI2
                 select BSP_SPI2_TX_USING_DMA
                 default n
-                
+
             config BSP_USING_SPI3
                 bool "Enable SPI3 BUS"
-                default n        
+                default n
 
             config BSP_SPI3_TX_USING_DMA
                 bool "Enable SPI3 TX DMA"
                 depends on BSP_USING_SPI3
                 default n
-                
+
             config BSP_SPI3_RX_USING_DMA
                 bool "Enable SPI3 RX DMA"
                 depends on BSP_USING_SPI3
                 select BSP_SPI3_TX_USING_DMA
-                default n  
+                default n
         endif
-        
-    menuconfig BSP_USING_I2C2
-        bool "Enable I2C2 BUS (software simulation)"
+
+    menuconfig BSP_USING_SOFT_I2C
+        bool "Enable software I2C (swi2c)"
         default n
         select RT_USING_I2C
-        select RT_USING_I2C_BITOPS
-        select RT_USING_PIN
-        if BSP_USING_I2C2
-            comment "Notice: PB10 --> 26; PB11 --> 27" 
-            config BSP_I2C2_SCL_PIN
-                int "i2c2 scl pin number"
-                range 0 175
-                default 26
-            config BSP_I2C2_SDA_PIN
-                int "i2c2 sda pin number"
-                range 0 175
-                default 27
+        select RT_USING_SOFT_I2C
+        if BSP_USING_SOFT_I2C
+        menuconfig BSP_USING_SOFT_I2C2
+            bool "Enable software I2C2 Bus (swi2c2)"
+            default n
+            select RT_USING_SOFT_I2C2
+            if BSP_USING_SOFT_I2C2
+                config RT_SOFT_I2C2_SCL_PIN
+                    int "swi2c2 SCL pin number"
+                    default 26
+                config RT_SOFT_I2C2_SDA_PIN
+                    int "swi2c2 SDA pin number"
+                    default 27
+            endif
         endif
-        
     config BSP_USING_ON_CHIP_FLASH
         bool "Enable on-chip FLASH"
         default n
-        
+
     config BSP_USING_SDIO
         bool "Enable SDIO"
         select RT_USING_SDIO
         select RT_USING_DFS
         default n
-    source "../libraries/HAL_Drivers/Kconfig"
-    
+    source "$(BSP_DIR)/../libraries/HAL_Drivers/drivers/Kconfig"
+
 endmenu
 
 menu "Board extended module Drivers"
@@ -150,5 +192,6 @@ menu "Board extended module Drivers"
         default n
 
 endmenu
+
 
 endmenu

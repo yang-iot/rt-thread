@@ -1,4 +1,6 @@
 *.pyc
+**/Cargo.lock
+**/target/
 *.map
 *.dblite
 *.elf
@@ -10,8 +12,13 @@
 *.idb
 *.ilk
 *.old
+*.crf
+*.dtb*
 build
 Debug
+.vs
+rtthread
+settings
 documentation/html
 *~
 *.o
@@ -22,8 +29,13 @@ documentation/html
 *.a
 *.i
 *.d
-tools/kconfig-frontends/kconfig-mconf
+*.dfinish
+*.su
+#source insight 4 project files
+*.si4project
 packages
+dist
+rt-studio-project
 cconfig.h
 GPUCache
 
@@ -34,3 +46,28 @@ ncscope.*
 #ctag files
 tags
 
+.idea
+**/.cache/
+.vscode
+*.code-workspace
+*.eide.*
+.history
+CMakeLists.txt
+cmake-build-debug
+*.mk
+
+# vDSO
+vdso_sys.os
+vdso.lds
+
+# cherryusb libraries
+!components/drivers/usb/cherryusb/port/pusb2/*.a
+!components/drivers/usb/cherryusb/port/xhci/phytium/*.a
+!components/drivers/usb/cherryusb/platform/rtthread
+
+# stm32cubemx
+**/CubeMX_Config/Drivers/
+**/CubeMX_Config/MDK-ARM/
+
+# mac
+.DS_Store

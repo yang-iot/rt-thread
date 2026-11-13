@@ -8,14 +8,29 @@
   * @date    04 Dec 2019
   * @author  AE Team
   * @note
+  *          Change Logs:
+  *          Date            Author          Notes
+  *          04 Dec 2019     AE Team         The first version
   *
   * Copyright (C) Shanghai Eastsoft Microelectronics Co. Ltd. All rights reserved.
   *
-  *********************************************************************************
+  * SPDX-License-Identifier: Apache-2.0
+  *
+  * Licensed under the Apache License, Version 2.0 (the License); you may
+  * not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  **********************************************************************************
   */
 
-#include "ald_pmu.h"
-#include "ald_bkpc.h"
+#include "ald_conf.h"
 
 
 /** @addtogroup ES32FXXX_ALD
@@ -77,10 +92,19 @@ void ald_lvd_irq_handler(void)
   */
 void ald_pmu_stop1_enter(void)
 {
+	int cnt = 4000;
+
 	SYSCFG_UNLOCK();
+	
+	CLEAR_BIT(PMU->CR0, PMU_CR0_MTSTOP_MSK);
+#ifdef ES32F336x  /* MCU Series: ES32F336x */
 	SET_BIT(PMU->CR0, PMU_CR0_LPSTOP_MSK);
+#endif
+	MODIFY_REG(PMU->CR1, PMU_CR1_LDO18MOD_MSK, PMU_LDO_18_HOLD << PMU_CR1_LDO18MOD_POSS);
 	MODIFY_REG(PMU->CR0, PMU_CR0_LPM_MSK, PMU_LP_STOP1 << PMU_CR0_LPM_POSS);
 	SYSCFG_LOCK();
+
+	while ((!(PMU->CR1 & PMU_CR1_LDO18RDY_MSK)) && (cnt--));
 
 	SysTick->CTRL &= ~SysTick_CTRL_ENABLE_Msk;
 	SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
@@ -96,10 +120,19 @@ void ald_pmu_stop1_enter(void)
   */
 void ald_pmu_stop2_enter(void)
 {
+	int cnt = 4000;
+
 	SYSCFG_UNLOCK();
+
+	SET_BIT(PMU->CR0, PMU_CR0_MTSTOP_MSK);
+#ifdef ES32F336x  /* MCU Series: ES32F336x */
 	SET_BIT(PMU->CR0, PMU_CR0_LPSTOP_MSK);
+#endif
+	MODIFY_REG(PMU->CR1, PMU_CR1_LDO18MOD_MSK, PMU_LDO_18_HOLD << PMU_CR1_LDO18MOD_POSS);
 	MODIFY_REG(PMU->CR0, PMU_CR0_LPM_MSK, PMU_LP_STOP2 << PMU_CR0_LPM_POSS);
 	SYSCFG_LOCK();
+
+	while ((!(PMU->CR1 & PMU_CR1_LDO18RDY_MSK)) && (cnt--));
 
 	SysTick->CTRL &= ~SysTick_CTRL_ENABLE_Msk;
 	SCB->SCR |= SCB_SCR_SLEEPDEEP_Msk;
@@ -120,7 +153,6 @@ void ald_pmu_standby_enter(bkpc_wakeup_port_t port, bkpc_wakeup_level_t level)
 	ald_bkpc_standby_wakeup_config(port, level);
 
 	SYSCFG_UNLOCK();
-	SET_BIT(PMU->CR0, PMU_CR0_LPSTOP_MSK);
 	MODIFY_REG(PMU->CR0, PMU_CR0_LPM_MSK, PMU_LP_STANDBY << PMU_CR0_LPM_POSS);
 	SYSCFG_LOCK();
 
@@ -131,6 +163,46 @@ void ald_pmu_standby_enter(bkpc_wakeup_port_t port, bkpc_wakeup_level_t level)
 
 	return;
 }
+
+/**
+  * @brief  Enable/Disable LDO(1.2V) hold mode. It must be disabled in STOP1.
+  * @param  state: Enable/Disable
+  * @retval None
+  */
+void ald_pmu_ldo_12_config(type_func_t state)
+{
+	assert_param(IS_FUNC_STATE(state));
+	SYSCFG_UNLOCK();
+
+	if (state)
+		SET_BIT(PMU->CR0, PMU_CR0_MTSTOP_MSK);
+	else
+		CLEAR_BIT(PMU->CR0, PMU_CR0_MTSTOP_MSK);
+
+	SYSCFG_LOCK();
+	return;
+}
+
+/**
+  * @brief  Configure LDO(1.8V) mode
+  * @param  mode: Mode of the LDO(1.8V)
+  * @retval None
+  */
+void ald_pmu_ldo_18_config(pmu_ldo_18_mode_t mode)
+{
+	uint32_t cnt = 4000;
+
+	assert_param(IS_PMU_LDO18_MODE(mode));
+
+	SYSCFG_UNLOCK();
+	MODIFY_REG(PMU->CR1, PMU_CR1_LDO18MOD_MSK, mode << PMU_CR1_LDO18MOD_POSS);
+	SYSCFG_LOCK();
+
+	while ((!(PMU->CR1 & PMU_CR1_LDO18RDY_MSK)) && (cnt--));
+	return;
+}
+
+#ifdef ES32F336x  /* MCU Series: ES32F336x */
 
 /**
   * @brief  Configures low power mode. The system clock must
@@ -157,6 +229,7 @@ void ald_pmu_lprun_config(pmu_ldo_lpmode_output_t vol, type_func_t state)
 	SYSCFG_LOCK();
 	return;
 }
+#endif
 
 /**
   * @brief  Get wakup status.

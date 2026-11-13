@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2006-2018, RT-Thread Development Team
- * 
+ * Copyright (c) 2006-2021, RT-Thread Development Team
+ *
  * SPDX-License-Identifier: Apache-2.0
  *
  * Date           Author       Notes
@@ -355,7 +355,7 @@ static rt_err_t sound_init(struct rt_audio_device *audio)
     RT_ASSERT(audio != RT_NULL);
     snd_dev = (struct sound_device *)audio->parent.user_data;
 
-    es8388_init("i2c3", GET_PIN(A, 5));
+    es8388_init("swi2c3", GET_PIN(A, 5));
     SAIA_Init();
 
     /* set default params */

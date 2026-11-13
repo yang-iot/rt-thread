@@ -22,7 +22,7 @@
 
 该开发板常用 ** 板载资源 ** 如下：
 
-- MCU：STM32F407ZGT6，主频 100MHz，512KB FLASH ，128KB RAM。
+- MCU：STM32F411RET6，主频 100MHz，512KB FLASH ，128KB RAM。
 - 常用外设
   - LED：3 个，USB communication (LD1), user LED (LD2), power LED (LD3) 。
   - 按键，2 个，USER and RESET 。
@@ -56,6 +56,14 @@
 ### 快速上手
 
 本 BSP 为开发者提供 MDK5 和 IAR 工程，并且支持 GCC 开发环境。下面以 MDK5 开发环境为例，介绍如何将系统运行起来。
+
+**请注意！！！**
+
+在执行编译工作前请先打开ENV执行以下指令（该指令用于拉取必要的HAL库及CMSIS库，否则无法通过编译）：
+
+```bash
+pkgs --update
+```
 
 #### 硬件连接
 

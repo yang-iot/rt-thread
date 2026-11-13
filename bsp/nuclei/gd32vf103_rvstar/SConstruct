@@ -23,7 +23,7 @@ AddOption('--run',
 DefaultEnvironment(tools=[])
 env = Environment(tools = ['mingw'],
     AS = rtconfig.AS, ASFLAGS = rtconfig.AFLAGS,
-    CC = rtconfig.CC, CCFLAGS = rtconfig.CFLAGS,
+    CC = rtconfig.CC, CFLAGS = rtconfig.CFLAGS, CCFLAGS = '',
     CXX = rtconfig.CXX, CXXFLAGS = rtconfig.CXXFLAGS,
     AR = rtconfig.AR, ARFLAGS = '-rc', LIBS = rtconfig.LIBS,
     LINK = rtconfig.LINK, LINKFLAGS = rtconfig.LFLAGS)
@@ -61,7 +61,7 @@ else:
 hal_sconscript = os.path.join(libraries_path_prefix, bsp_library_type, 'HAL_Drivers', 'SConscript')
 
 if os.path.isfile(hal_sconscript):
-    objs.extend(SConscript(hal_sconscript))
+    objs.extend(SConscript(hal_sconscript, variant_dir=os.path.join('build', 'libraries', bsp_library_type, 'HAL_Drivers'), duplicate=0))
 
 # make a building
 DoBuilding(TARGET, objs)
@@ -75,7 +75,7 @@ if run_target in SUPPORT_RUN_TARGETS:
             upload_cmd = '{} {} -ex "set remotetimeout 240" \
                     -ex "target remote | openocd --pipe -f {}" \
                     --batch -ex "monitor halt" -ex "monitor flash protect 0 0 last off" -ex "load" \
-                    -ex "monitor resume" -ex "monitor shutdown" -ex "quit"'.format(GDB, TARGET, openocd_cfg)
+                    -ex "monitor resume" -ex "quit"'.format(GDB, TARGET, openocd_cfg)
             print("Upload application {} using openocd and gdb".format(TARGET))
             print(upload_cmd)
             os.system(upload_cmd)

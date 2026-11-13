@@ -13,10 +13,26 @@
   * @date    07 Nov 2019
   * @author  AE Team
   * @note
+  *          Change Logs:
+  *          Date            Author          Notes
+  *          07 Nov 2019     AE Team         The first version
   *
   * Copyright (C) Shanghai Eastsoft Microelectronics Co. Ltd. All rights reserved.
   *
-  *********************************************************************************
+  * SPDX-License-Identifier: Apache-2.0
+  *
+  * Licensed under the Apache License, Version 2.0 (the License); you may
+  * not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  **********************************************************************************
   * @verbatim
   ==============================================================================
                     ##### GPIO Peripheral features #####
@@ -93,9 +109,9 @@
             init.odos  = GPIO_PUSH_PULL;
             init.pupd  = GPIO_PUSH_UP;
             init.podrv = GPIO_OUT_DRIVE_6;
-			init.nodrv = GPIO_OUT_DRIVE_6;
+            init.nodrv = GPIO_OUT_DRIVE_6;
             init.flt   = GPIO_FILTER_DISABLE;
-            init.type  = GPIO_TYPE_TTL;
+            init.type  = GPIO_TYPE_CMOS;
             init.func  = GPIO_FUNC_1;
 
    (#) In case of external interrupt/event mode selection, user need invoke
@@ -125,8 +141,6 @@
   */
 
 #include "ald_conf.h"
-#include "ald_gpio.h"
-
 
 /** @addtogroup ES32FXXX_ALD
   * @{
@@ -332,12 +346,12 @@ void ald_gpio_exti_init(GPIO_TypeDef *GPIOx, uint16_t pin, exti_init_t *init)
 
 	/* Select external interrupt line */
 	if (i <= 7) {
-		EXTI->EXTIPSR0 &= ~(0x7 << (i * 4));
+		EXTI->EXTIPSR0 &= ~(0x7U << (i * 4));
 		EXTI->EXTIPSR0 |= (port << (i * 4));
 	}
 	else {
 		i -= 8;
-		EXTI->EXTIPSR1 &= ~(0x7 << (i * 4));
+		EXTI->EXTIPSR1 &= ~(0x7U << (i * 4));
 		EXTI->EXTIPSR1 |= (port << (i * 4));
 	}
 
@@ -376,8 +390,6 @@ void ald_gpio_exti_init(GPIO_TypeDef *GPIOx, uint16_t pin, exti_init_t *init)
   * @param  GPIOx: Where x can be (A--H) to select the GPIO peripheral.
   * @param  pin: Specifies the pin to read.
   * @retval The input pin value
-  *         - BIT_SET
-  *         - BIT_RESET
   */
 uint8_t ald_gpio_read_pin(GPIO_TypeDef *GPIOx, uint16_t pin)
 {
@@ -385,10 +397,9 @@ uint8_t ald_gpio_read_pin(GPIO_TypeDef *GPIOx, uint16_t pin)
 	assert_param(IS_GPIO_PIN(pin));
 
 	if (READ_BIT(GPIOx->DIN, pin))
-		return BIT_SET;
-
+		return 1;
 	else
-		return BIT_RESET;
+		return 0;
 }
 
 /**
@@ -404,9 +415,9 @@ void ald_gpio_write_pin(GPIO_TypeDef *GPIOx, uint16_t pin, uint8_t val)
 	assert_param(IS_GPIO_PIN(pin));
 
 	if ((val & (0x01)) == 0x00)
-		CLEAR_BIT(GPIOx->DOUT, pin);
+		GPIOx->BSRR = pin << 16U;
 	else
-		SET_BIT(GPIOx->DOUT, pin);
+		GPIOx->BSRR = pin;
 
 	return;
 }
@@ -513,8 +524,6 @@ void ald_gpio_write_port(GPIO_TypeDef *GPIOx, uint16_t val)
 	WRITE_REG(GPIOx->DOUT, val);
 	return;
 }
-
-
 /**
   * @}
   */

@@ -60,6 +60,14 @@ Each peripheral supporting condition for this BSP is as follows:
 
 This BSP provides MDK4, MDK5, and IAR projects for developers and it supports the GCC development environment. Here's an example of the MDK5 development environment, to introduce how to run the system.
 
+**Attention please！！！**
+
+Before the compilation work, please open ENV and execute the following command (this command is used to pull the necessary HAL library and CMSIS library, otherwise it cannot be compiled)：
+
+```bash
+pkgs --update
+```
+
 #### Hardware connection
 
 Use a USB cable to connect the development board to the PC and turn on the power switch.
@@ -93,5 +101,5 @@ This BSP only enables GPIO and serial port 2 by default. If you need more advanc
 3. Enter pkgs --update command to update the package;
 4. Enter scons --target=mdk4/mdk5/iar command to regenerate the project.
 
-Learn how to use RT-Thread Env, click [Here](https://github.com/RT-Thread/rtthread-manual-doc/blob/master/env/env.md).
+Learn how to use RT-Thread Env, click [Here](https://github.com/RT-Thread/rt-thread/blob/master/documentation/env/env.md).
 

@@ -8,14 +8,29 @@
   * @date    25 Dec 2019
   * @author  AE Team
   * @note
+  *          Change Logs:
+  *          Date            Author          Notes
+  *          25 Dec 2019     AE Team         The first version
   *
   * Copyright (C) Shanghai Eastsoft Microelectronics Co. Ltd. All rights reserved.
   *
-  *********************************************************************************
+  * SPDX-License-Identifier: Apache-2.0
+  *
+  * Licensed under the Apache License, Version 2.0 (the License); you may
+  * not use this file except in compliance with the License.
+  * You may obtain a copy of the License at
+  *
+  * www.apache.org/licenses/LICENSE-2.0
+  *
+  * Unless required by applicable law or agreed to in writing, software
+  * distributed under the License is distributed on an AS IS BASIS, WITHOUT
+  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  * See the License for the specific language governing permissions and
+  * limitations under the License.
+  **********************************************************************************
   */
 
-#include "ald_usb.h"
-#include "ald_syscfg.h"
+#include "ald_conf.h"
 
 /** @addtogroup ES32FXXX_ALD
   * @{
@@ -481,16 +496,16 @@ void ald_usb_host_ep_data_toggle(uint32_t ep_idx, bool toggle, uint32_t flags)
 	}
 
 	if (ep_idx == USB_EP_0) {
-		USB0->CSR0H = ((USB0->CSR0H  & ~(USB_CSRH0_DTWE | USB_CSRH0_DT)) |
+		USB0->CSR0H = (uint8_t)((USB0->CSR0H  & ~(USB_CSRH0_DTWE | USB_CSRH0_DT)) |
 						(tmp | USB_CSRH0_DTWE));
 	}
 	else if (flags == USB_EP_HOST_IN) {
-		USB0->CSR[ep_idx - 1].RXxCSRH = ((USB0->CSR[ep_idx - 1].RXxCSRH &
+		USB0->CSR[ep_idx - 1].RXxCSRH = (uint8_t)((USB0->CSR[ep_idx - 1].RXxCSRH &
 							~(USB_RXCSRH1_DTWE | USB_RXCSRH1_DT)) |
 							(tmp | USB_RXCSRH1_DTWE));
 	}
 	else {
-		USB0->CSR[ep_idx - 1].TXxCSRH = ((USB0->CSR[ep_idx - 1].TXxCSRH &
+		USB0->CSR[ep_idx - 1].TXxCSRH = (uint8_t)((USB0->CSR[ep_idx - 1].TXxCSRH &
 							~(USB_TXCSRH1_DTWE | USB_TXCSRH1_DT)) |
 							(tmp | USB_TXCSRH1_DTWE));
 	}
@@ -1184,7 +1199,7 @@ void ald_usb_dma_channel_start(uint8_t ch)
   */
 void ald_usb_dma_channel_stop(uint8_t ch)
 {
-	USB0->DMA_CH[ch].DMA_CNTL &= ~0x1;
+	USB0->DMA_CH[ch].DMA_CNTL &= (uint32_t)(~0x1);
 	return;
 }
 

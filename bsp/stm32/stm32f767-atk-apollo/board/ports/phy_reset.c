@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006-2018, RT-Thread Development Team
+ * Copyright (c) 2006-2021, RT-Thread Development Team
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -16,7 +16,7 @@
 #include <drv_log.h>
 
 #define ETH_RESET_IO    7                //PHY RESET PIN
-#define I2C_BUS_NAME    "i2c2"
+#define I2C_BUS_NAME    "swi2c2"
 #define PCF8574_ADDR    0x20
 
 /* pcf8574 hardware init */

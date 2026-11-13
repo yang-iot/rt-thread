@@ -1,0 +1,5 @@
+*.dtb
+*.dts
+*.qcow2
+opensbi
+romfs_data.c

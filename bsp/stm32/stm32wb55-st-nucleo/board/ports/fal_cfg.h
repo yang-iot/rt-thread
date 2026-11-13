@@ -1,11 +1,11 @@
 /*
- * Copyright (c) 2006-2018, RT-Thread Development Team
+ * Copyright (c) 2006-2021, RT-Thread Development Team
  *
  * SPDX-License-Identifier: Apache-2.0
  *
  * Change Logs:
- * Date           Author       			Notes
- * 2020-09-29     Dozingfiretruck   first version
+ * Date           Author                Notes
+ * 2020-09-29     PeakRacing   first version
  */
 
 #ifndef _FAL_CFG_H_
